@@ -8,6 +8,7 @@ import { apiGet, apiPost } from '@/lib/api'
 import type {
   Approval,
   ApprovalComment,
+  ApprovalDetail,
   AuditLogEntry,
   ApprovalsListParams,
   ApprovalsListResponse,
@@ -15,10 +16,94 @@ import type {
   DenyPayload,
   RequestInfoPayload,
   BulkActionPayload,
+  SubmitApprovalActionPayload,
+  TargetEntity,
+  ResourceReference,
+  ArtifactReference,
+  AgentMessage,
+  PayloadDiff,
+  ApprovalHistoryEntry,
 } from '@/types/approvals'
 
 const API_BASE = '/approvals'
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API !== 'false'
+
+// --- Mock ApprovalDetail (full context) ---
+
+function mockApprovalToDetail(a: Approval): ApprovalDetail {
+  const details = (a.details ?? {}) as Record<string, unknown>
+  const proposedAction = (details.proposedAction as string) ?? a.summary
+  const agentExplanations = Array.isArray(details.agentExplanations) ? details.agentExplanations : []
+  const affectedResources = Array.isArray(details.affectedResources) ? details.affectedResources : []
+  const runArtifacts = Array.isArray(details.runArtifacts) ? details.runArtifacts : []
+
+  const targetEntities: TargetEntity[] = (a.contentItemId
+    ? [{ id: a.contentItemId, type: 'content', name: (details.title as string) ?? a.summary }]
+    : a.runId
+      ? [{ id: a.runId, type: 'run', name: (details.title as string) ?? a.summary }]
+      : [])
+
+  const resources: ResourceReference[] = affectedResources.map((r: string, i: number) => ({
+    id: `res-${i}`,
+    type: 'resource',
+    name: r,
+    status: 'pending',
+    impact: 'medium',
+  }))
+
+  const artifacts: ArtifactReference[] = runArtifacts.map((ra: { id?: string; type?: string; content?: string }, i: number) => ({
+    id: (ra.id as string) ?? `art-${i}`,
+    label: (ra.type as string) ?? 'Artifact',
+    url: `#artifact-${i}`,
+    type: (ra.type as string) ?? 'diff',
+  }))
+
+  const trace: AgentMessage[] = agentExplanations.map((ex: { agentId?: string; agentName?: string; message?: string; timestamp?: string }, i: number) => ({
+    id: `msg-${i}`,
+    agentId: ex.agentId ?? 'agent',
+    timestamp: ex.timestamp ?? new Date().toISOString(),
+    content: ex.message ?? '',
+    type: 'handoff' as const,
+  }))
+
+  const diffs: PayloadDiff[] = runArtifacts.some((ra: { type?: string }) => ra.type === 'diff')
+    ? [{
+        type: 'json' as const,
+        before: {},
+        after: a.inputs ?? {},
+      }]
+    : []
+
+  const slaDue = a.slaEnd ? new Date(a.slaEnd).getTime() : Date.now() + 24 * 60 * 60 * 1000
+  const remainingMs = Math.max(0, slaDue - Date.now())
+  const slaStatus = remainingMs === 0 ? 'overdue' as const : remainingMs < 3600000 ? 'escalated' as const : 'ok' as const
+
+  return {
+    id: a.id,
+    status: a.status === 'pending-info' ? 'changes_requested' : (a.status as ApprovalDetail['status']),
+    proposedAction,
+    targetEntities,
+    rationale: proposedAction,
+    inputs: a.inputs ?? {},
+    payload: a.inputs ?? {},
+    resources,
+    policy: {
+      multiApproverRequired: a.multiApproverPolicy ?? false,
+      requiredApprovers: [],
+      slaHours: 24,
+    },
+    sla: {
+      dueAt: new Date(slaDue).toISOString(),
+      remainingMs,
+      status: slaStatus,
+    },
+    history: [],
+    comments: [],
+    artifacts,
+    trace,
+    diffs,
+  }
+}
 
 // --- Mock data ---
 
@@ -337,3 +422,88 @@ export async function fetchAuditLogs(approvalId?: string): Promise<AuditLogEntry
   )
   return Array.isArray(res) ? res : res?.data ?? []
 }
+
+// --- Approval Detail (full context) ---
+
+export async function fetchApprovalDetail(id: string): Promise<ApprovalDetail | null> {
+  if (USE_MOCK) {
+    const a = MOCK_APPROVALS.find((x) => x.id === id)
+    if (!a) return null
+    const detail = mockApprovalToDetail(a)
+    const comments = (MOCK_COMMENTS ?? []).filter((c) => c.approvalId === id)
+    const logs = (MOCK_AUDIT_LOGS ?? []).filter((l) => l.actionId === id)
+    detail.comments = comments.map((c) => ({
+      id: c.id,
+      authorId: c.authorId,
+      author: c.author,
+      text: c.comment,
+      createdAt: c.createdAt,
+    }))
+    detail.history = logs.map((l) => ({
+      id: l.id,
+      action: l.actionType,
+      actorId: l.actorId,
+      actor: l.actor,
+      timestamp: l.createdAt,
+      comment: l.summary,
+    }))
+    return detail
+  }
+  try {
+    const res = await apiGet<ApprovalDetail>(`${API_BASE}/${id}`)
+    return res ?? null
+  } catch {
+    return null
+  }
+}
+
+export async function fetchApprovalTrace(id: string): Promise<AgentMessage[]> {
+  if (USE_MOCK) {
+    const detail = await fetchApprovalDetail(id)
+    return (detail?.trace ?? []) as AgentMessage[]
+  }
+  const res = await apiGet<AgentMessage[] | { data?: AgentMessage[] }>(
+    `${API_BASE}/${id}/trace`
+  )
+  return Array.isArray(res) ? res : res?.data ?? []
+}
+
+export async function fetchApprovalDiffs(id: string): Promise<PayloadDiff[]> {
+  if (USE_MOCK) {
+    const detail = await fetchApprovalDetail(id)
+    return detail?.diffs ?? []
+  }
+  const res = await apiGet<PayloadDiff[] | { data?: PayloadDiff[] }>(
+    `${API_BASE}/${id}/diffs`
+  )
+  return Array.isArray(res) ? res : res?.data ?? []
+}
+
+export async function fetchApprovalAudit(id: string): Promise<ApprovalHistoryEntry[]> {
+  if (USE_MOCK) {
+    const detail = await fetchApprovalDetail(id)
+    return detail?.history ?? []
+  }
+  const res = await apiGet<ApprovalHistoryEntry[] | { data?: ApprovalHistoryEntry[] }>(
+    `${API_BASE}/${id}/audit`
+  )
+  return Array.isArray(res) ? res : res?.data ?? []
+}
+
+export async function submitApprovalAction(
+  id: string,
+  payload: SubmitApprovalActionPayload
+): Promise<void> {
+  if (USE_MOCK) {
+    const a = MOCK_APPROVALS.find((x) => x.id === id)
+    if (a) {
+      if (payload.action === 'approve') a.status = 'approved'
+      else if (payload.action === 'deny') a.status = 'denied'
+      else if (payload.action === 'changes_requested') a.status = 'pending-info'
+      a.updatedAt = new Date().toISOString()
+    }
+    return
+  }
+  await apiPost(`${API_BASE}/${id}/actions`, payload)
+}
+

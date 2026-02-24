@@ -5,13 +5,22 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import type { Approval, ApprovalComment, AuditLogEntry, ApprovalsListParams } from '@/types/approvals'
+import type {
+  Approval,
+  ApprovalComment,
+  ApprovalDetail,
+  AuditLogEntry,
+  ApprovalsListParams,
+  SubmitApprovalActionPayload,
+} from '@/types/approvals'
 import {
   fetchApprovals,
   fetchApproval,
+  fetchApprovalDetail,
   approveApproval,
   denyApproval,
   requestInfoApproval,
+  submitApprovalAction,
   bulkActionApprovals,
   fetchApprovalComments,
   addApprovalComment,
@@ -102,6 +111,7 @@ export function useApprovals(initialParams?: ApprovalsListParams) {
 
 export function useApprovalDetail(id: string | undefined) {
   const [approval, setApproval] = useState<Approval | null>(null)
+  const [detail, setDetail] = useState<ApprovalDetail | null>(null)
   const [comments, setComments] = useState<ApprovalComment[]>([])
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -110,6 +120,7 @@ export function useApprovalDetail(id: string | undefined) {
   const load = useCallback(async () => {
     if (!id) {
       setApproval(null)
+      setDetail(null)
       setComments([])
       setAuditLogs([])
       setIsLoading(false)
@@ -118,17 +129,20 @@ export function useApprovalDetail(id: string | undefined) {
     setIsLoading(true)
     setError(null)
     try {
-      const [a, c, logs] = await Promise.all([
+      const [d, a, c, logs] = await Promise.all([
+        fetchApprovalDetail(id),
         fetchApproval(id),
         fetchApprovalComments(id),
         fetchAuditLogs(id),
       ])
+      setDetail(d ?? null)
       setApproval(a ?? null)
       setComments(Array.isArray(c) ? c : [])
       setAuditLogs(Array.isArray(logs) ? logs : [])
     } catch (e) {
       setError(e instanceof Error ? e : new Error('Failed to load approval'))
       setApproval(null)
+      setDetail(null)
       setComments([])
       setAuditLogs([])
     } finally {
@@ -140,35 +154,72 @@ export function useApprovalDetail(id: string | undefined) {
     load()
   }, [load])
 
-  const handleApprove = useCallback(async (comment?: string) => {
-    if (!id) return
-    await approveApproval(id, { comment })
-    load()
-  }, [id, load])
+  const handleApprove = useCallback(
+    async (comment?: string) => {
+      if (!id) return
+      await submitApprovalAction(id, { action: 'approve', comments: comment })
+      load()
+    },
+    [id, load]
+  )
 
-  const handleDeny = useCallback(async (comment?: string) => {
-    if (!id) return
-    await denyApproval(id, { comment })
-    load()
-  }, [id, load])
+  const handleDeny = useCallback(
+    async (comment?: string) => {
+      if (!id) return
+      await submitApprovalAction(id, { action: 'deny', comments: comment })
+      load()
+    },
+    [id, load]
+  )
 
-  const handleRequestInfo = useCallback(async (payload?: { comment?: string; questions?: string[] }) => {
-    if (!id) return
-    await requestInfoApproval(id, payload ?? {})
-    load()
-  }, [id, load])
+  const handleRequestChanges = useCallback(
+    async (comment?: string) => {
+      if (!id) return
+      await submitApprovalAction(id, { action: 'changes_requested', comments: comment })
+      load()
+    },
+    [id, load]
+  )
 
-  const handleAddComment = useCallback(async (comment: string) => {
+  const handleRequestInfo = useCallback(
+    async (payload?: { comment?: string; questions?: string[] }) => {
+      if (!id) return
+      await requestInfoApproval(id, payload ?? {})
+      load()
+    },
+    [id, load]
+  )
+
+  const handleAddComment = useCallback(async (text: string) => {
     if (!id) return null
-    const newComment = await addApprovalComment(id, comment)
+    const newComment = await addApprovalComment(id, text)
     if (newComment) {
       setComments((prev) => [...prev, newComment])
+      return {
+        id: newComment.id,
+        authorId: newComment.authorId,
+        author: newComment.author,
+        text: newComment.comment,
+        createdAt: newComment.createdAt,
+      }
     }
-    return newComment
+    return null
   }, [id])
+
+  const handleSubmitAction = useCallback(
+    async (payload: SubmitApprovalActionPayload) => {
+      if (!id) return
+      const { action, comments: comment } = payload ?? {}
+      if (action === 'approve') await handleApprove(comment)
+      else if (action === 'deny') await handleDeny(comment)
+      else if (action === 'changes_requested') await handleRequestChanges(comment)
+    },
+    [id, handleApprove, handleDeny, handleRequestChanges]
+  )
 
   return {
     approval,
+    detail,
     comments,
     auditLogs,
     isLoading,
@@ -176,7 +227,9 @@ export function useApprovalDetail(id: string | undefined) {
     refetch: load,
     approve: handleApprove,
     deny: handleDeny,
+    requestChanges: handleRequestChanges,
     requestInfo: handleRequestInfo,
     addComment: handleAddComment,
+    submitAction: handleSubmitAction,
   }
 }

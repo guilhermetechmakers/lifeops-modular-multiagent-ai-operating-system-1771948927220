@@ -103,3 +103,109 @@ export interface BulkActionPayload {
   ids: string[]
   comment?: string
 }
+
+// --- Approval Detail (full context) ---
+
+export type ApprovalDetailStatus =
+  | 'pending'
+  | 'approved'
+  | 'denied'
+  | 'changes_requested'
+  | 'completed'
+  | 'pending-info'
+
+export interface TargetEntity {
+  id: string
+  type: string
+  name: string
+}
+
+export interface ApprovalPolicy {
+  multiApproverRequired?: boolean
+  requiredApprovers?: string[]
+  slaHours?: number
+  escalationRules?: Record<string, unknown>
+}
+
+export interface ApprovalSLA {
+  dueAt: string
+  remainingMs: number
+  status: 'ok' | 'escalated' | 'overdue'
+}
+
+export interface ApprovalHistoryEntry {
+  id: string
+  action: string
+  actorId: string
+  actor?: string
+  timestamp: string
+  comment?: string
+  beforeState?: Record<string, unknown>
+  afterState?: Record<string, unknown>
+}
+
+export interface ApprovalCommentDetail {
+  id: string
+  authorId: string
+  author?: string
+  text: string
+  createdAt: string
+  attachmentUrls?: string[]
+  inReplyToCommentId?: string
+}
+
+export interface AgentMessage {
+  id: string
+  agentId: string
+  role?: string
+  timestamp: string
+  content: string
+  type: 'handoff' | 'negotiation' | 'alert' | 'consensus'
+}
+
+export interface ResourceReference {
+  id: string
+  type: string
+  name: string
+  status: string
+  impact?: string
+  links?: string[]
+}
+
+export interface ArtifactReference {
+  id: string
+  label: string
+  url: string
+  type: string
+}
+
+export interface PayloadDiff {
+  type: 'json' | 'text'
+  before: string | Record<string, unknown>
+  after: string | Record<string, unknown>
+}
+
+export interface ApprovalDetail {
+  id: string
+  status: ApprovalDetailStatus
+  proposedAction: string
+  targetEntities?: TargetEntity[]
+  rationale?: string
+  inputs?: Record<string, unknown>
+  payload?: Record<string, unknown>
+  resources?: ResourceReference[]
+  policy?: ApprovalPolicy
+  sla?: ApprovalSLA
+  history?: ApprovalHistoryEntry[]
+  comments?: ApprovalCommentDetail[]
+  artifacts?: ArtifactReference[]
+  trace?: AgentMessage[]
+  diffs?: PayloadDiff[]
+}
+
+export interface SubmitApprovalActionPayload {
+  action: 'approve' | 'deny' | 'changes_requested'
+  comments?: string
+  attachments?: string[]
+  relatedActionId?: string
+}
