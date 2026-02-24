@@ -2,10 +2,12 @@ import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { requestPasswordReset } from '@/api/auth'
 
 const schema = z.object({
   email: z.string().email('Invalid email address'),
@@ -20,8 +22,12 @@ export function PasswordResetPage() {
     formState: { errors, isSubmitting, isSubmitSuccessful },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
-  const onSubmit = async (_data: FormData) => {
-    await new Promise((r) => setTimeout(r, 500))
+  const onSubmit = async (data: FormData) => {
+    const { ok, error } = await requestPasswordReset(data.email)
+    if (!ok) {
+      toast.error(error ?? 'Failed to send reset email')
+      throw new Error(error)
+    }
   }
 
   return (

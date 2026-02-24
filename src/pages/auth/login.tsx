@@ -1,139 +1,178 @@
-import { Link } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Eye, EyeOff } from 'lucide-react'
+/**
+ * LoginPage - Entry point for user authentication.
+ * Supports email/password, OAuth (Google, GitHub, Microsoft), 2FA, and account recovery.
+ */
+
 import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
+import {
+  EmailPasswordLoginCard,
+  OAuthSignInSection,
+  TwoFAInlineFlow,
+  SecurityNotice,
+} from '@/components/auth'
+import type { LoginFormData } from '@/components/auth'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  login,
+  verify2FA,
+  initiateOAuth,
+} from '@/api/auth'
+import type { OAuthProvider } from '@/types/auth'
+import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
-const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
-  remember: z.boolean().optional(),
-})
-
-type LoginForm = z.infer<typeof loginSchema>
+type AuthState = 'credentials' | 'two-fa'
 
 export function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { remember: false },
-  })
+  const navigate = useNavigate()
+  const [authState, setAuthState] = useState<AuthState>('credentials')
+  const [isLoading, setIsLoading] = useState(false)
+  const [loginError, setLoginError] = useState<string>('')
+  const [twoFAError, setTwoFAError] = useState<string>('')
 
-  const onSubmit = async (_data: LoginForm) => {
-    await new Promise((r) => setTimeout(r, 500))
+  const handleEmailPasswordSubmit = async (data: LoginFormData) => {
+    setLoginError('')
+    setIsLoading(true)
+    try {
+      const response = await login(data.email, data.password, data.remember ?? false)
+      const { ok, requires2FA, error } = response ?? {}
+
+      if (ok && requires2FA) {
+        setAuthState('two-fa')
+        setTwoFAError('')
+      } else if (ok) {
+        toast.success('Signed in successfully')
+        navigate('/dashboard', { replace: true })
+      } else {
+        setLoginError(error ?? 'Invalid email or password')
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      setLoginError(message)
+      toast.error(message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
+  const handle2FAVerify = async (code: string) => {
+    setTwoFAError('')
+    setIsLoading(true)
+    try {
+      const response = await verify2FA(code)
+      const { ok, error } = response ?? {}
+
+      if (ok) {
+        toast.success('Signed in successfully')
+        navigate('/dashboard', { replace: true })
+      } else {
+        setTwoFAError(error ?? 'Invalid verification code')
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Verification failed. Please try again.'
+      setTwoFAError(message)
+      toast.error(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handle2FABack = async () => {
+    setAuthState('credentials')
+    setTwoFAError('')
+    await supabase?.auth.signOut()
+  }
+
+  const handleOAuthClick = async (provider: OAuthProvider) => {
+    setLoginError('')
+    setIsLoading(true)
+    try {
+      const response = await initiateOAuth(provider)
+      const { redirectUrl, ok, error } = response ?? {}
+
+      if (redirectUrl) {
+        window.location.href = redirectUrl
+        return
+      }
+      if (ok) {
+        toast.success('Signed in successfully')
+        navigate('/dashboard', { replace: true })
+      } else {
+        setLoginError(error ?? `Sign in with ${provider} failed`)
+        toast.error(error ?? `Sign in with ${provider} failed`)
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'OAuth sign-in failed. Please try again.'
+      setLoginError(message)
+      toast.error(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const isTwoFAFlow = authState === 'two-fa'
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+    <div
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8"
+      style={{ backgroundColor: '#18191C' }}
+    >
       <div className="w-full max-w-md animate-in-up">
         <div className="text-center mb-8">
-          <Link to="/" className="text-2xl font-bold text-foreground">
+          <Link
+            to="/"
+            className="text-2xl font-bold text-white hover:text-white/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F8CFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#18191C] rounded"
+          >
             LifeOps
           </Link>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Log in</CardTitle>
-            <CardDescription>Enter your credentials to access your account</CardDescription>
+
+        <Card
+          className={cn(
+            'rounded-2xl border-[#26282C] shadow-card transition-all duration-300',
+            'hover:shadow-card-hover'
+          )}
+          style={{
+            backgroundColor: '#232429',
+            borderColor: 'rgba(38, 40, 44, 0.6)',
+          }}
+        >
+          <CardHeader className="space-y-1.5">
+            <CardTitle className="text-2xl font-bold text-white">
+              {isTwoFAFlow ? 'Verify your identity' : 'Sign in'}
+            </CardTitle>
+            <CardDescription className="text-[#AEB2B8]">
+              {isTwoFAFlow
+                ? 'Enter your verification code to complete sign in'
+                : 'Enter your credentials to access your account'}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  {...register('email')}
-                  className={cn(errors.email && 'border-destructive')}
+          <CardContent className="space-y-6">
+            {isTwoFAFlow ? (
+              <TwoFAInlineFlow
+                onVerify={handle2FAVerify}
+                onBack={handle2FABack}
+                isLoading={isLoading}
+                error={twoFAError}
+              />
+            ) : (
+              <>
+                <EmailPasswordLoginCard
+                  onSubmit={handleEmailPasswordSubmit}
+                  isLoading={isLoading}
+                  error={loginError}
+                  disabled={isLoading}
                 />
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email.message}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link
-                    to="/password-reset"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    {...register('password')}
-                    className={cn(errors.password && 'border-destructive', 'pr-10')}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password.message}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  {...register('remember')}
-                  className="rounded border-input"
+                <OAuthSignInSection
+                  onProviderClick={handleOAuthClick}
+                  isLoading={isLoading}
+                  disabled={isLoading}
                 />
-                <Label htmlFor="remember" className="font-normal cursor-pointer">
-                  Remember me
-                </Label>
-              </div>
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Signing in...' : 'Log in'}
-              </Button>
-            </form>
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <Button variant="outline" type="button" size="sm">
-                  Google
-                </Button>
-                <Button variant="outline" type="button" size="sm">
-                  GitHub
-                </Button>
-                <Button variant="outline" type="button" size="sm">
-                  Microsoft
-                </Button>
-              </div>
-            </div>
-            <p className="mt-6 text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{' '}
-              <Link to="/signup" className="text-primary hover:underline font-medium">
-                Sign up
-              </Link>
-            </p>
+                <SecurityNotice />
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -33,6 +33,7 @@ export async function apiGet<T>(path: string, options?: RequestInit): Promise<T>
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     method: 'GET',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,
@@ -49,6 +50,7 @@ export async function apiPost<T>(
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,
