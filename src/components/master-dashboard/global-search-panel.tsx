@@ -15,8 +15,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Search, FileText, Clock, FolderKanban, DollarSign, History, X } from 'lucide-react'
-import { globalSearch, type GlobalSearchResult } from '@/api/master-dashboard'
+import { Search, FileText, Clock, FolderKanban, DollarSign, History } from 'lucide-react'
+import { globalSearch } from '@/api/master-dashboard'
+import type { GlobalSearchResult } from '@/types/master-dashboard'
 import { cn } from '@/lib/utils'
 
 const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
