@@ -100,3 +100,27 @@ ALTER TABLE cronjobs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage own cronjobs"
   ON cronjobs FOR ALL
   USING (auth.uid() = user_id);
+
+-- Run artifacts / logs for cronjob traces
+CREATE TABLE IF NOT EXISTS artifacts_run_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cronjob_id UUID NOT NULL REFERENCES cronjobs(id) ON DELETE CASCADE,
+  run_id TEXT NOT NULL,
+  logs JSONB DEFAULT '[]',
+  artifacts JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_artifacts_cronjob ON artifacts_run_logs(cronjob_id);
+
+ALTER TABLE artifacts_run_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own cronjob artifacts"
+  ON artifacts_run_logs FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM cronjobs c
+      WHERE c.id = artifacts_run_logs.cronjob_id AND c.user_id = auth.uid()
+    )
+  );

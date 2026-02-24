@@ -32,6 +32,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}))
     const state = body?.state ?? {}
+    const stepIndex = body?.step_index ?? state?.stepIndex ?? 0
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -52,7 +53,7 @@ Deno.serve(async (req) => {
       .upsert(
         {
           user_id: user.id,
-          step_index: body?.step_index ?? 0,
+          step_index: stepIndex,
           state_json: state,
           updated_at: new Date().toISOString(),
         },
