@@ -1,73 +1,52 @@
-# React + TypeScript + Vite
+# LifeOps — Modular Multi-Agent AI Operating System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modular, multi-agent AI operating system that automates projects, content, finances, and health through coordinated AI agents. Cronjobs-first orchestration with explainability, approvals, and full audit trails.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Framework:** React 18 + TypeScript
+- **Build:** Vite
+- **Styling:** Tailwind CSS v3
+- **UI:** Radix UI primitives, Lucide icons
+- **Charts:** Recharts
+- **Forms:** React Hook Form + Zod
+- **Routing:** React Router v6
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Project Structure
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+src/
+├── components/     # UI components and layouts
+├── lib/            # Utilities, API, Supabase
+├── pages/          # Route pages
+│   ├── auth/       # Login, signup, password reset
+│   ├── dashboard/  # Master, Projects, Content, Finance, Health, Cronjobs, etc.
+│   ├── errors/     # 404, 500
+│   ├── landing/     # Landing page
+│   ├── legal/      # Terms, Privacy
+│   └── onboarding/ # Setup wizard
+└── routes.tsx     # React Router config
+```
+
+## Routes
+
+- `/` — Landing
+- `/login`, `/signup`, `/password-reset`, `/verify-email` — Auth
+- `/terms`, `/privacy` — Legal
+- `/onboarding` — Setup wizard
+- `/dashboard` — Master dashboard (redirects to overview)
+- `/dashboard/overview` — Master command center
+- `/dashboard/projects`, `/content`, `/finance`, `/health` — Module dashboards
+- `/dashboard/cronjobs`, `/approvals`, `/runs`, `/agents`, `/workflows` — Orchestration
+- `/dashboard/settings`, `/billing` — Account
+
+## Design
+
+Dark mode-first with LifeOps palette: `#18191C` background, `#4F8CFF` primary, `#5ED36D` success, `#FFD66C` warning, `#EF6464` destructive.
