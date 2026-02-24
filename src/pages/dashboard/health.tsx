@@ -1,72 +1,157 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Heart } from 'lucide-react'
+/**
+ * HealthDashboard - Personal health and workload balancing view.
+ * Aggregates habits, training/meal plans, recovery, sleep, wearables, agent suggestions.
+ */
+
+import { useHealthDashboard } from '@/hooks/use-health-dashboard'
+import {
+  TodayOverviewCard,
+  HabitTrackerCard,
+  TrainingMealPlanCard,
+  RecoverySleepCard,
+  WorkloadBalanceCard,
+  WearablesStatusCard,
+  AgentSuggestionsCard,
+  MasterDashboardLinkCard,
+  NotificationsPanel,
+  TimelinePanel,
+} from '@/components/health'
+import { toast } from 'sonner'
 
 export function HealthDashboard() {
+  const {
+    today,
+    habits,
+    plans,
+    recovery,
+    sleep,
+    wearables,
+    suggestions,
+    workload,
+    notifications,
+    timeline,
+    isLoading,
+    error,
+    toggleHabitItem,
+    approveSuggestionItem,
+    rejectSuggestionItem,
+    triggerWearablesSync,
+    applyWorkloadSuggestionItem,
+    isSyncing,
+  } = useHealthDashboard()
+
+  const handleToggleHabit = async (id: string) => {
+    try {
+      await toggleHabitItem(id)
+      toast.success('Habit updated')
+    } catch {
+      toast.error('Failed to update habit')
+    }
+  }
+
+  const handleApprove = async (id: string) => {
+    try {
+      await approveSuggestionItem(id)
+      toast.success('Suggestion approved')
+    } catch {
+      toast.error('Failed to approve')
+    }
+  }
+
+  const handleReject = async (id: string) => {
+    try {
+      await rejectSuggestionItem(id)
+      toast.success('Suggestion rejected')
+    } catch {
+      toast.error('Failed to reject')
+    }
+  }
+
+  const handleWearablesSync = async () => {
+    try {
+      await triggerWearablesSync()
+      toast.success('Wearables synced')
+    } catch {
+      toast.error('Failed to sync wearables')
+    }
+  }
+
+  const handleApplyWorkload = async (id: string) => {
+    try {
+      await applyWorkloadSuggestionItem(id)
+      toast.success('Schedule applied')
+    } catch {
+      toast.error('Failed to apply')
+    }
+  }
+
   return (
-    <div className="space-y-8 animate-in-up">
+    <div className="space-y-6 animate-fade-in-up">
       <div>
-        <h1 className="text-3xl font-bold">Health</h1>
+        <h1 className="text-3xl font-bold">Health Dashboard</h1>
         <p className="text-muted-foreground mt-1">
-          Personal health and workload balancing with privacy-first agents
+          Personal health and workload balancing with habits, plans, recovery, and agent-driven automation
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Habits</CardTitle>
-            <CardDescription>This week</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">5/7</p>
-            <p className="text-sm text-muted-foreground mt-1">days tracked</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Training</CardTitle>
-            <CardDescription>This week</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">3</p>
-            <p className="text-sm text-muted-foreground mt-1">sessions</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Recovery</CardTitle>
-            <CardDescription>Sleep score</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">82</p>
-            <p className="text-sm text-success mt-1">Good</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Meals</CardTitle>
-            <CardDescription>Logged today</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">2</p>
-            <p className="text-sm text-muted-foreground mt-1">of 3</p>
-          </CardContent>
-        </Card>
-      </div>
+      {error && (
+        <div className="p-4 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive text-sm">
+          {error}
+        </div>
+      )}
 
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-16">
-          <Heart className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-muted-foreground text-center max-w-sm">
-            Connect HealthKit or Google Fit to sync your health data. All data stays private
-            and is processed with your explicit consent.
-          </p>
-          <Button variant="outline" className="mt-4">
-            Connect Wearable
-          </Button>
-        </CardContent>
-      </Card>
+      {/* 12-column grid with 24-32px gutters */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+        {/* Main content - 8 columns */}
+        <div className="lg:col-span-8 space-y-6">
+          <TodayOverviewCard data={today} isLoading={isLoading} />
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <HabitTrackerCard
+              habits={habits ?? []}
+              isLoading={isLoading}
+              onToggle={handleToggleHabit}
+            />
+            <TrainingMealPlanCard plans={plans ?? []} isLoading={isLoading} />
+          </div>
+
+          <RecoverySleepCard
+            recovery={recovery ?? []}
+            sleep={sleep ?? []}
+            isLoading={isLoading}
+          />
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <WorkloadBalanceCard
+              suggestions={workload ?? []}
+              isLoading={isLoading}
+              onApply={handleApplyWorkload}
+            />
+            <WearablesStatusCard
+              wearables={wearables ?? []}
+              isLoading={isLoading}
+              isSyncing={isSyncing}
+              onSync={handleWearablesSync}
+            />
+          </div>
+
+          <AgentSuggestionsCard
+            suggestions={suggestions ?? []}
+            isLoading={isLoading}
+            onApprove={handleApprove}
+            onReject={handleReject}
+          />
+        </div>
+
+        {/* Right rail - 4 columns */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="sticky top-4 space-y-6">
+            <MasterDashboardLinkCard />
+            <NotificationsPanel notifications={notifications ?? []} isLoading={isLoading} />
+            <TimelinePanel events={timeline ?? []} isLoading={isLoading} />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
