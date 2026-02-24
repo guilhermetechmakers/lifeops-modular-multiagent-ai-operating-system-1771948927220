@@ -14,6 +14,11 @@ import type {
   VectorMemoryBlock,
   ContentTemplate,
   GlobalSearchFilters,
+  ContentVersion,
+  ContentPreview,
+  BulkActionRequest,
+  BulkActionResponse,
+  ContentListFilters,
 } from '@/types/content-dashboard'
 import { apiGet, apiPost, apiPut, apiPatch } from '@/lib/api'
 
@@ -128,18 +133,46 @@ export async function fetchContentItems(params?: {
   page?: number
   limit?: number
   search?: string
+  listFilters?: ContentListFilters
 }): Promise<ContentItemsResponse> {
   if (USE_MOCK) {
     let items = [...MOCK_CONTENT_ITEMS]
-    const search = params?.search?.toLowerCase()
+    const search = (params?.search ?? params?.listFilters?.search)?.toLowerCase()
     if (search) {
       items = items.filter((i) => i.title.toLowerCase().includes(search) || (i.summary ?? '').toLowerCase().includes(search))
     }
-    const status = params?.filters?.status
-    if (status) items = items.filter((i) => i.status === status)
+    const status = params?.filters?.status ?? params?.listFilters?.status
+    if (status) {
+      items = items.filter((i) => {
+        if (['draft', 'in_review', 'published', 'archived'].includes(String(status))) {
+          return i.contentStatus === status || i.status === status
+        }
+        return i.status === status
+      })
+    }
+    const typeFilter = params?.listFilters?.type
+    if (typeFilter) items = items.filter((i) => i.type === typeFilter)
+    const tags = params?.listFilters?.tags
+    if (tags?.length) {
+      items = items.filter((i) => (i.tags ?? []).some((t) => tags.includes(t)))
+    }
+    const authorId = params?.filters?.authorId ?? params?.listFilters?.authorId
+    if (authorId) items = items.filter((i) => i.authorId === authorId)
+    const dateFrom = params?.listFilters?.dateFrom
+    if (dateFrom) items = items.filter((i) => i.createdAt >= dateFrom)
+    const dateTo = params?.listFilters?.dateTo
+    if (dateTo) items = items.filter((i) => i.createdAt <= dateTo)
+    const sort = params?.listFilters?.sort ?? 'updatedAt'
+    const sortOrder = params?.listFilters?.sortOrder ?? 'desc'
+    items = [...items].sort((a, b) => {
+      const aVal = sort === 'title' ? a.title : sort === 'createdAt' ? a.createdAt : sort === 'publishedAt' ? (a.publishAt ?? '') : a.updatedAt
+      const bVal = sort === 'title' ? b.title : sort === 'createdAt' ? b.createdAt : sort === 'publishedAt' ? (b.publishAt ?? '') : b.updatedAt
+      const cmp = aVal.localeCompare(bVal)
+      return sortOrder === 'asc' ? cmp : -cmp
+    })
     const total = items.length
-    const page = params?.page ?? 1
-    const limit = params?.limit ?? 50
+    const page = params?.page ?? params?.listFilters?.page ?? 1
+    const limit = params?.limit ?? params?.listFilters?.pageSize ?? 50
     const start = (page - 1) * limit
     items = items.slice(start, start + limit)
     return { items, total, page, limit }
@@ -153,6 +186,77 @@ export async function fetchContentItems(params?: {
   const data = res as { data?: ContentItem[]; items?: ContentItem[]; total?: number }
   const list = Array.isArray(data?.data) ? data.data : Array.isArray(data?.items) ? data.items : []
   return { items: list, total: data?.total ?? list.length }
+}
+
+export async function fetchContentPreview(id: string): Promise<ContentPreview | null> {
+  if (USE_MOCK) {
+    const item = MOCK_CONTENT_ITEMS.find((i) => i.id === id)
+    if (!item) return null
+    return {
+      id: item.id,
+      title: item.title,
+      excerpt: item.summary ?? '',
+      bodyPreview: item.summary?.slice(0, 300),
+      version: item.version ?? 1,
+      author: item.authorId,
+      createdAt: item.createdAt,
+    }
+  }
+  try {
+    const res = await apiGet<ContentPreview | { data: ContentPreview }>(`/content/${id}/preview`)
+    return (res as { data?: ContentPreview })?.data ?? (res as ContentPreview) ?? null
+  } catch {
+    return null
+  }
+}
+
+export async function fetchContentVersions(id: string): Promise<ContentVersion[]> {
+  if (USE_MOCK) {
+    const item = MOCK_CONTENT_ITEMS.find((i) => i.id === id)
+    if (!item) return []
+    return [
+      {
+        id: 'v1',
+        contentId: item.id,
+        versionNumber: item.version ?? 1,
+        snapshot: JSON.stringify({ title: item.title, summary: item.summary }),
+        changedBy: item.authorId,
+        changedAt: item.updatedAt,
+      },
+    ]
+  }
+  try {
+    const res = await apiGet<ContentVersion[] | { data: ContentVersion[] }>(`/content/${id}/versions`)
+    const data = res as { data?: ContentVersion[] }
+    return Array.isArray(data?.data) ? data.data : Array.isArray(res) ? res : []
+  } catch {
+    return []
+  }
+}
+
+export async function bulkContentAction(payload: BulkActionRequest): Promise<BulkActionResponse> {
+  if (USE_MOCK) {
+    const results = (payload.itemIds ?? []).map((id) => ({
+      id,
+      status: 'success' as const,
+      message: `${payload.action} completed`,
+    }))
+    if (payload.action === 'archive') {
+      payload.itemIds.forEach((id) => {
+        const idx = MOCK_CONTENT_ITEMS.findIndex((i) => i.id === id)
+        if (idx >= 0) MOCK_CONTENT_ITEMS[idx] = { ...MOCK_CONTENT_ITEMS[idx], contentStatus: 'archived' }
+      })
+    }
+    if (payload.action === 'delete') {
+      payload.itemIds.forEach((id) => {
+        const idx = MOCK_CONTENT_ITEMS.findIndex((i) => i.id === id)
+        if (idx >= 0) MOCK_CONTENT_ITEMS.splice(idx, 1)
+      })
+    }
+    return { success: true, results }
+  }
+  const res = await apiPost<BulkActionResponse>('/content/bulk-action', payload)
+  return res ?? { success: false, results: [] }
 }
 
 export async function fetchContentItem(id: string): Promise<ContentItem | null> {
@@ -195,6 +299,99 @@ export async function updateContentItem(id: string, payload: Partial<ContentItem
   }
   const res = await apiPut<ContentItem | { data: ContentItem }>(`/content-items/${id}`, payload)
   return (res as { data?: ContentItem })?.data ?? (res as ContentItem)
+}
+
+/** Content List / Library API */
+
+export interface ContentListResponse {
+  data: ContentItem[]
+  totalCount: number
+}
+
+export async function fetchContentList(filters?: ContentListFilters): Promise<ContentListResponse> {
+  if (USE_MOCK) {
+    let items = [...MOCK_CONTENT_ITEMS]
+    const search = (filters?.search ?? '').toLowerCase()
+    if (search) {
+      items = items.filter(
+        (i) =>
+          i.title.toLowerCase().includes(search) ||
+          (i.summary ?? '').toLowerCase().includes(search)
+      )
+    }
+    const status = filters?.status
+    if (status && status !== 'all') {
+      items = items.filter((i) => i.status === status)
+    }
+    const type = filters?.type
+    if (type) {
+      items = items.filter((i) => (i as { type?: string }).type === type)
+    }
+    const authorId = filters?.authorId
+    if (authorId) items = items.filter((i) => i.authorId === authorId)
+    const tags = filters?.tags ?? []
+    if (tags.length > 0) {
+      items = items.filter((i) => (i.tags ?? []).some((t) => tags.includes(t)))
+    }
+    const dateFrom = filters?.dateFrom
+    if (dateFrom) items = items.filter((i) => i.createdAt >= dateFrom)
+    const dateTo = filters?.dateTo
+    if (dateTo) items = items.filter((i) => i.createdAt <= dateTo)
+    const sort = filters?.sort ?? 'updatedAt'
+    const sortOrder = filters?.sortOrder ?? 'desc'
+    items.sort((a, b) => {
+      const aVal = a[sort] ?? ''
+      const bVal = b[sort] ?? ''
+      const cmp = String(aVal).localeCompare(String(bVal), undefined, { numeric: true })
+      return sortOrder === 'asc' ? cmp : -cmp
+    })
+    const totalCount = items.length
+    const page = filters?.page ?? 1
+    const pageSize = Math.min(Math.max(filters?.pageSize ?? 20, 10), 100)
+    const start = (page - 1) * pageSize
+    items = items.slice(start, start + pageSize)
+    return { data: items, totalCount }
+  }
+  const q = new URLSearchParams()
+  if (filters?.search) q.set('q', filters.search)
+  if (filters?.status) q.set('status', String(filters.status))
+  if (filters?.type) q.set('type', String(filters.type))
+  if (filters?.authorId) q.set('authorId', filters.authorId)
+  if (filters?.dateFrom) q.set('dateFrom', filters.dateFrom)
+  if (filters?.dateTo) q.set('dateTo', filters.dateTo)
+  if (filters?.page) q.set('page', String(filters.page))
+  if (filters?.pageSize) q.set('pageSize', String(filters.pageSize))
+  if (filters?.sort) q.set('sort', filters.sort)
+  if (filters?.sortOrder) q.set('sortOrder', filters.sortOrder)
+  const res = await apiGet<ContentListResponse | { data: ContentItem[]; totalCount?: number }>(`/content?${q}`)
+  const data = res as { data?: ContentItem[]; totalCount?: number }
+  const list = Array.isArray(data?.data) ? data.data : []
+  return { data: list, totalCount: data?.totalCount ?? list.length }
+}
+
+export async function bulkActionContent(payload: BulkActionRequest): Promise<BulkActionResponse> {
+  if (USE_MOCK) {
+    const results = (payload.itemIds ?? []).map((id) => ({
+      id,
+      status: 'success' as const,
+      message: 'OK',
+    }))
+    if (payload.action === 'archive') {
+      payload.itemIds.forEach((id) => {
+        const idx = MOCK_CONTENT_ITEMS.findIndex((i) => i.id === id)
+        if (idx >= 0) MOCK_CONTENT_ITEMS[idx] = { ...MOCK_CONTENT_ITEMS[idx], contentStatus: 'archived' }
+      })
+    }
+    if (payload.action === 'delete') {
+      payload.itemIds.forEach((id) => {
+        const idx = MOCK_CONTENT_ITEMS.findIndex((i) => i.id === id)
+        if (idx >= 0) MOCK_CONTENT_ITEMS.splice(idx, 1)
+      })
+    }
+    return { success: true, results }
+  }
+  const res = await apiPost<BulkActionResponse>('/content/bulk-action', payload)
+  return res
 }
 
 export async function fetchPipelineRuns(contentItemId?: string): Promise<PipelineRun[]> {
