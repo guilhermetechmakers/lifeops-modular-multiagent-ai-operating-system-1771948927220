@@ -1,67 +1,126 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Bot, Play, Settings, Database } from 'lucide-react'
+/**
+ * Agent Console Page - List of agents with dashboard cards.
+ */
 
-const MOCK_AGENTS = [
-  { id: 1, name: 'Content Ideas Agent', status: 'active', runs: 47 },
-  { id: 2, name: 'Finance Processor', status: 'active', runs: 12 },
-  { id: 3, name: 'Anomaly Detector', status: 'idle', runs: 8 },
-]
+import { useState, useMemo } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Search, Bot } from 'lucide-react'
+import { useAgents } from '@/hooks/use-agent-console'
+import { AgentConsoleCard, AgentTraceVisualizer } from '@/components/agent-console'
 
 export function AgentConsolePage() {
+  const { agents, isLoading, error, refetch } = useAgents()
+  const [search, setSearch] = useState('')
+
+  const list = Array.isArray(agents) ? agents : []
+  const filtered = useMemo(() => {
+    if (!search.trim()) return list
+    const q = search.toLowerCase()
+    return list.filter(
+      (a) =>
+        a.name.toLowerCase().includes(q) ||
+        a.id.toLowerCase().includes(q) ||
+        (a.status ?? '').toLowerCase().includes(q)
+    )
+  }, [list, search])
+
+  if (error) {
+    return (
+      <div className="space-y-8 animate-in-up">
+        <div>
+          <h1 className="text-3xl font-bold">Agent Console</h1>
+          <p className="text-muted-foreground mt-1">
+            Inspect and manage agents. View inter-agent messages.
+          </p>
+        </div>
+        <Card className="border-destructive/50">
+          <CardContent className="py-6">
+            <p className="text-destructive">{error.message}</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="mt-4 text-sm text-primary hover:underline"
+            >
+              Retry
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8 animate-in-up">
       <div>
         <h1 className="text-3xl font-bold">Agent Console</h1>
         <p className="text-muted-foreground mt-1">
-          Inspect and manage agents. View inter-agent messages.
+          Inspect and manage agents. View configuration, memory, and run simulations.
         </p>
       </div>
 
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search agents..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      {/* Agent list */}
       <div className="grid gap-6">
-        {MOCK_AGENTS.map((agent) => (
-          <Card key={agent.id} className="transition-all duration-300 hover:shadow-card-hover">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="rounded-lg p-2 bg-primary/10">
-                    <Bot className="h-5 w-5 text-primary" />
+        {isLoading ? (
+          <>
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="animate-pulse">
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-muted/30" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-5 w-48 bg-muted/30 rounded" />
+                      <div className="h-4 w-32 bg-muted/30 rounded" />
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle>{agent.name}</CardTitle>
-                    <CardDescription>{agent.runs} runs • {agent.status}</CardDescription>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <Play className="h-4 w-4" />
-                    Simulate
-                  </Button>
-                  <Button variant="ghost" size="icon-sm">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Database className="h-4 w-4" />
-                Memory snapshot available
+                </CardHeader>
+                <CardContent>
+                  <div className="h-4 w-40 bg-muted/30 rounded" />
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : filtered.length === 0 ? (
+          <Card>
+            <CardContent className="py-16">
+              <div className="flex flex-col items-center justify-center text-center">
+                <Bot className="h-16 w-16 text-muted-foreground mb-4 opacity-50" />
+                <p className="text-muted-foreground">
+                  {list.length === 0
+                    ? 'No agents configured yet'
+                    : 'No agents match your search'}
+                </p>
               </div>
             </CardContent>
           </Card>
-        ))}
+        ) : (
+          filtered.map((agent) => (
+            <AgentConsoleCard key={agent.id} agent={agent} />
+          ))
+        )}
       </div>
 
+      {/* Trace viewer placeholder */}
       <Card>
         <CardHeader>
           <CardTitle>Trace Viewer</CardTitle>
-          <CardDescription>Interactive timeline of inter-agent messages</CardDescription>
+          <CardDescription>
+            Select an agent and run a simulation to view the trace. Or open an agent detail page.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-48 rounded-lg border border-dashed border-border flex items-center justify-center text-muted-foreground">
-            Select a run to view trace
-          </div>
+          <AgentTraceVisualizer traces={[]} />
         </CardContent>
       </Card>
     </div>

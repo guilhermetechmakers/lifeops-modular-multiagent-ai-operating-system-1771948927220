@@ -52,6 +52,7 @@ import { ApprovalDetailPage } from '@/pages/dashboard/approval-detail'
 import { RunHistoryPage } from '@/pages/dashboard/run-history'
 import { RunDetailPage } from '@/pages/dashboard/run-detail'
 import { AgentConsolePage } from '@/pages/dashboard/agent-console'
+import { AgentConsoleDetailPage } from '@/pages/dashboard/agent-console-detail'
 import { WorkflowEditorPage } from '@/pages/dashboard/workflow-editor'
 import { SettingsPage } from '@/pages/dashboard/settings'
 import { BillingPage } from '@/pages/dashboard/billing'
@@ -142,6 +143,7 @@ export const router = createBrowserRouter([
       { path: 'runs', element: <RunHistoryPage /> },
       { path: 'runs/:id', element: <RunDetailPage /> },
       { path: 'agents', element: <AgentConsolePage /> },
+      { path: 'agents/:agentId', element: <AgentConsoleDetailPage /> },
       { path: 'workflows', element: <WorkflowEditorPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'billing', element: <BillingPage /> },
