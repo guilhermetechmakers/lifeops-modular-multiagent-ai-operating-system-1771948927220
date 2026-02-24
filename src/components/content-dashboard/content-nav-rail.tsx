@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutGrid, Library, LayoutDashboard, Database, ChevronLeft } from 'lucide-react'
+import { LayoutGrid, Library, LayoutDashboard, Database, ChevronLeft, PenSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -13,6 +13,7 @@ const STORAGE_KEY = 'lifeops_content_nav_collapsed'
 
 const NAV_ITEMS: { to: string; icon: React.ComponentType<{ className?: string }>; label: string; end?: boolean }[] = [
   { to: '', icon: LayoutGrid, label: 'Pipeline', end: true },
+  { to: 'create', icon: PenSquare, label: 'Create' },
   { to: 'library', icon: Library, label: 'Library' },
   { to: 'master', icon: LayoutDashboard, label: 'Master' },
   { to: 'memory', icon: Database, label: 'Memory' },

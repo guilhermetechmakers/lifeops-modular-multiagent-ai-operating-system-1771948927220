@@ -75,7 +75,7 @@ export function ContentListLibraryPage() {
   const handleOpenInEditor = useCallback(
     (item: ContentItem) => {
       setPreviewItem(null)
-      navigate(`/dashboard/content?item=${item.id}`)
+      navigate(`/dashboard/content/create/${item.id}`)
     },
     [navigate]
   )
@@ -213,7 +213,7 @@ export function ContentListLibraryPage() {
               : 'Create your first content item to get started. Use the pipeline to go from idea to published.'
           }
           actionLabel={hasActiveFilters ? undefined : 'Create Content'}
-          onAction={hasActiveFilters ? undefined : () => navigate('/dashboard/content')}
+          onAction={hasActiveFilters ? undefined : () => navigate('/dashboard/content/create')}
           secondaryActionLabel={hasActiveFilters ? 'Clear filters' : undefined}
           onSecondaryAction={hasActiveFilters ? clearFilters : undefined}
         />

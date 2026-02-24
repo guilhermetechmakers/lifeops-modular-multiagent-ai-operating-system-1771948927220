@@ -16,7 +16,7 @@ export interface CreateContentShortcutProps {
 }
 
 export function CreateContentShortcut({
-  to = '/dashboard/content',
+  to = '/dashboard/content/create',
   prefillFromTemplateId,
   prefillFromDraftId,
   className,

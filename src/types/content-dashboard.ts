@@ -177,10 +177,104 @@ export type ContentLibraryType = 'draft' | 'published' | 'template'
 export interface ContentVersion {
   id: string
   contentId: string
+  contentItemId?: string
   versionNumber: number
   snapshot: string
+  changes?: string
   changedBy: string
+  authorId?: string
   changedAt: string
+  createdAt?: string
+  isDiff?: boolean
+}
+
+/** Create Content - Schedule for publishing */
+export type SchedulePermission = 'suggest-only' | 'approval-required' | 'conditional-auto' | 'bounded-autopilot'
+
+export interface Schedule {
+  id: string
+  name: string
+  enabled: boolean
+  cronExpression?: string
+  timezone: string
+  targetContentId: string
+  inputPayload?: Record<string, unknown>
+  permissions: SchedulePermission
+  constraints?: { maxActions?: number; spendLimit?: number; allowedTools?: string[] }
+  safetyRails?: string[]
+  retryPolicy?: { backoffMs: number; maxRetries: number; deadLetterQueue?: string }
+  createdAt: string
+  updatedAt: string
+}
+
+/** Create Content - Scoped memory for content item */
+export interface MemoryScope {
+  id: string
+  contentItemId: string
+  scopeName: string
+  dataBlob: unknown
+  ttlSeconds?: number
+  accessControls?: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
+}
+
+/** Create Content - Run artifact (diff, log, generated content) */
+export type RunArtifactType = 'diff' | 'generatedContent' | 'log' | 'artifact'
+
+export interface RunArtifact {
+  id: string
+  contentItemId: string
+  runId: string
+  type: RunArtifactType
+  path: string
+  signedUrl?: string
+  retentionPolicy?: string
+  createdAt: string
+}
+
+/** Create Content - Audit log entry */
+export interface AuditLog {
+  id: string
+  contentItemId: string
+  action: string
+  actorId: string
+  timestamp: string
+  details?: Record<string, unknown>
+}
+
+/** Create Content - Platform publish record */
+export type PlatformPublishStatus = 'queued' | 'in-progress' | 'completed' | 'failed'
+
+export interface PlatformPublishRecord {
+  id: string
+  contentItemId: string
+  platform: string
+  status: PlatformPublishStatus
+  scheduledAt?: string
+  startedAt?: string
+  finishedAt?: string
+  logs?: string
+}
+
+/** Create Content - Content item with full editor fields */
+export type CreateContentStatus = 'draft' | 'review' | 'scheduled' | 'published'
+
+export interface CreateContentItem {
+  id: string
+  title: string
+  slug?: string
+  status: CreateContentStatus
+  currentVersionId?: string
+  body?: string
+  summary?: string
+  createdAt: string
+  updatedAt: string
+  authorId: string
+  memoryScopeIds?: string[]
+  platformPublishConfig?: Record<string, unknown>
+  platforms?: string[]
+  publishAt?: string
 }
 
 export interface ContentPreview {
@@ -217,6 +311,29 @@ export interface BulkActionResponse {
   success: boolean
   results: BulkActionResult[]
   errors?: unknown[]
+}
+
+/** Create Content - Extended types for editor, versioning, scheduling */
+export type ContentEditorStatus = 'draft' | 'review' | 'scheduled' | 'published'
+
+export interface ContentVersionFull {
+  id: string
+  contentItemId: string
+  versionNumber: number
+  changes: string
+  authorId: string
+  createdAt: string
+  isDiff: boolean
+}
+
+export interface ResearchSource {
+  id: string
+  title: string
+  url?: string
+  snippet?: string
+  relevanceScore?: number
+  sourceType?: string
+  date?: string
 }
 
 /** Content list filters for library view */
