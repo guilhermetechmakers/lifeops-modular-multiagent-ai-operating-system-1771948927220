@@ -269,6 +269,9 @@ export function LandingPage() {
             <Link to="/privacy" className="hover:text-foreground transition-colors">
               Privacy Policy
             </Link>
+            <Link to="/help" className="hover:text-foreground transition-colors">
+              Help & Documentation
+            </Link>
           </div>
         </div>
       </footer>

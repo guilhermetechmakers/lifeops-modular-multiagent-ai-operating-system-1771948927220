@@ -91,3 +91,16 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--muted-foreground) / 0.5);
 }
+
+/* Print styles for Terms of Service */
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
+  .print\:bg-white {
+    background: white !important;
+  }
+  .print\:text-black {
+    color: black !important;
+  }
+}

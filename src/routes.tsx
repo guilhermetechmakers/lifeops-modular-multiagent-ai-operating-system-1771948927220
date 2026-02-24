@@ -10,6 +10,7 @@ import { PasswordResetPage } from '@/pages/auth/password-reset'
 import { EmailVerificationPage } from '@/pages/auth/email-verification'
 import { TermsPage } from '@/pages/legal/terms'
 import { PrivacyPage } from '@/pages/legal/privacy'
+import { HelpDocumentationPage } from '@/pages/help'
 
 // Dashboard pages
 import { MasterDashboard } from '@/pages/dashboard/master'
@@ -45,6 +46,9 @@ export const router = createBrowserRouter([
       { path: 'verify-email', element: <EmailVerificationPage /> },
       { path: 'terms', element: <TermsPage /> },
       { path: 'privacy', element: <PrivacyPage /> },
+      { path: 'help', element: <HelpDocumentationPage /> },
+      { path: 'help/:category', element: <HelpDocumentationPage /> },
+      { path: 'help/:category/:doc', element: <HelpDocumentationPage /> },
       { path: 'onboarding', element: <OnboardingPage /> },
     ],
   },

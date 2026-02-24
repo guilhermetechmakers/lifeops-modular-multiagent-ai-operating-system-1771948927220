@@ -19,6 +19,7 @@ import {
   Search,
   Plus,
   ChevronLeft,
+  HelpCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,6 +41,7 @@ const SIDEBAR_ITEMS = [
 const BOTTOM_ITEMS = [
   { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
   { to: '/dashboard/billing', icon: CreditCard, label: 'Billing' },
+  { to: '/help', icon: HelpCircle, label: 'Help' },
 ]
 
 export function DashboardLayout() {
