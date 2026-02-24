@@ -37,7 +37,8 @@ import {
   ContentCreatePage,
   ContentEditPage,
 } from '@/pages/dashboard/content'
-import { FinanceDashboard } from '@/pages/dashboard/finance'
+import { FinanceLayout } from '@/components/layout/finance-layout'
+import { FinanceDashboardPage, FinanceIntegrationsPage } from '@/pages/dashboard/finance'
 import { HealthDashboard } from '@/pages/dashboard/health'
 import { CronjobsDashboard } from '@/pages/dashboard/cronjobs'
 import { CronjobDetailPage } from '@/pages/dashboard/cronjob-detail'
@@ -118,7 +119,14 @@ export const router = createBrowserRouter([
           { path: ':id/edit', element: <ContentEditPage /> },
         ],
       },
-      { path: 'finance', element: <FinanceDashboard /> },
+      {
+        path: 'finance',
+        element: <FinanceLayout />,
+        children: [
+          { index: true, element: <FinanceDashboardPage /> },
+          { path: 'integrations', element: <FinanceIntegrationsPage /> },
+        ],
+      },
       { path: 'health', element: <HealthDashboard /> },
       { path: 'cronjobs', element: <CronjobsDashboard /> },
       { path: 'cronjobs/:id', element: <CronjobDetailPage /> },
