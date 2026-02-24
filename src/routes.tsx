@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { MainLayout } from '@/components/layout/main-layout'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { ProjectsLayout } from '@/components/layout/projects-layout'
+import { ContentLayout } from '@/components/layout/content-layout'
 
 // Public pages
 import { LandingPage } from '@/pages/landing'
@@ -28,7 +29,12 @@ import {
   ProjectsIntegrationsPage,
   ProjectsArtifactsPage,
 } from '@/pages/dashboard/projects-section-pages'
-import { ContentDashboard } from '@/pages/dashboard/content'
+import {
+  ContentDashboardPage,
+  ContentListLibraryPage,
+  ContentMasterDashboardPage,
+  ContentMemoryPage,
+} from '@/pages/dashboard/content'
 import { FinanceDashboard } from '@/pages/dashboard/finance'
 import { HealthDashboard } from '@/pages/dashboard/health'
 import { CronjobsDashboard } from '@/pages/dashboard/cronjobs'
@@ -97,7 +103,16 @@ export const router = createBrowserRouter([
           { path: ':id/artifacts', element: <ProjectsArtifactsPage /> },
         ],
       },
-      { path: 'content', element: <ContentDashboard /> },
+      {
+        path: 'content',
+        element: <ContentLayout />,
+        children: [
+          { index: true, element: <ContentDashboardPage /> },
+          { path: 'library', element: <ContentListLibraryPage /> },
+          { path: 'master', element: <ContentMasterDashboardPage /> },
+          { path: 'memory', element: <ContentMemoryPage /> },
+        ],
+      },
       { path: 'finance', element: <FinanceDashboard /> },
       { path: 'health', element: <HealthDashboard /> },
       { path: 'cronjobs', element: <CronjobsDashboard /> },
