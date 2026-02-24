@@ -7,6 +7,7 @@ import { LandingPage } from '@/pages/landing'
 import { LoginPage } from '@/pages/auth/login'
 import { SignupPage } from '@/pages/auth/signup'
 import { PasswordResetPage } from '@/pages/auth/password-reset'
+import { PasswordResetCompletePage } from '@/pages/auth/password-reset-complete'
 import { EmailVerificationPage } from '@/pages/auth/email-verification'
 import { TermsPage } from '@/pages/legal/terms'
 import { PrivacyPage } from '@/pages/legal/privacy'
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
       { path: 'login', element: <LoginPage /> },
       { path: 'signup', element: <SignupPage /> },
       { path: 'password-reset', element: <PasswordResetPage /> },
+      { path: 'password-reset/complete', element: <PasswordResetCompletePage /> },
       { path: 'verify-email', element: <EmailVerificationPage /> },
       { path: 'terms', element: <TermsPage /> },
       { path: 'privacy', element: <PrivacyPage /> },

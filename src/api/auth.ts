@@ -160,11 +160,30 @@ export async function requestPasswordReset(email: string): Promise<{ ok: boolean
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/password-reset`,
+    redirectTo: `${window.location.origin}/password-reset/complete`,
   })
 
   if (error) {
     return { ok: false, error: error.message ?? 'Failed to send reset email.' }
+  }
+
+  return { ok: true }
+}
+
+export interface UpdatePasswordResult {
+  ok: boolean
+  error?: string
+}
+
+export async function updatePassword(newPassword: string): Promise<UpdatePasswordResult> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, error: 'Authentication is not configured.' }
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+
+  if (error) {
+    return { ok: false, error: error.message ?? 'Failed to update password.' }
   }
 
   return { ok: true }
