@@ -3,7 +3,7 @@
  * Templates, nodes, edges, versions, simulation, policies, agents.
  */
 
-import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '@/lib/api'
+import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api'
 import type {
   WorkflowTemplate,
   WorkflowNode,
@@ -414,7 +414,7 @@ export async function fetchCronjobsForTemplate(templateId: string): Promise<Work
         status: 'succeeded',
         startedAt: new Date(Date.now() - 3600000).toISOString(),
         finishedAt: new Date(Date.now() - 3540000).toISOString(),
-    },
+      },
     ]
   }
   const res = await apiGet<WorkflowRun[] | { data?: WorkflowRun[] }>(

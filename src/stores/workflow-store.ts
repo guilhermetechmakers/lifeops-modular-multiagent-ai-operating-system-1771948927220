@@ -8,7 +8,6 @@ import type {
   WorkflowTemplate,
   WorkflowNode,
   WorkflowEdge,
-  WorkflowNodeType,
   SimulationResult,
 } from '@/types/workflow-editor'
 

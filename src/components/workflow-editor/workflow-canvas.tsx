@@ -13,10 +13,9 @@ import {
   PointerSensor,
   KeyboardSensor,
   type DragEndEvent,
-  type DragStartEvent,
 } from '@dnd-kit/core'
 import { cn } from '@/lib/utils'
-import type { WorkflowNode, WorkflowEdge, WorkflowNodeType } from '@/types/workflow-editor'
+import type { WorkflowNode, WorkflowNodeType } from '@/types/workflow-editor'
 import {
   Bot,
   ArrowRightLeft,
@@ -60,7 +59,6 @@ function CanvasNode({ node, isSelected, onSelect }: CanvasNodeProps) {
     id: node.id,
     data: { type: 'node', node },
   })
-  const updateNode = useWorkflowStore((s) => s.updateNode)
   const Icon = NODE_ICONS[node.type] ?? Bot
   const colorClass = NODE_COLORS[node.type] ?? NODE_COLORS.Agent
 
@@ -70,16 +68,10 @@ function CanvasNode({ node, isSelected, onSelect }: CanvasNodeProps) {
       }
     : undefined
 
-  const handleDragEnd = useCallback(
-    (e: React.MouseEvent) => {
-      // Position update handled by parent DndContext
-    },
-    []
-  )
-
   return (
     <div
       ref={setNodeRef}
+      data-draggable-node
       style={{
         ...style,
         left: node.position.x,
@@ -143,9 +135,15 @@ function CanvasNode({ node, isSelected, onSelect }: CanvasNodeProps) {
 interface WorkflowCanvasProps {
   templateId: string
   onCanvasClick?: () => void
+  /** Left slot (e.g. NodeLibrary) - rendered inside DndContext for cross-drag */
+  leftSlot?: React.ReactNode
 }
 
-export function WorkflowCanvas({ templateId, onCanvasClick }: WorkflowCanvasProps) {
+export function WorkflowCanvas({
+  templateId,
+  onCanvasClick,
+  leftSlot,
+}: WorkflowCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isPanning, setIsPanning] = useState(false)
   const [panStart, setPanStart] = useState({ x: 0, y: 0 })
@@ -169,9 +167,53 @@ export function WorkflowCanvas({ templateId, onCanvasClick }: WorkflowCanvasProp
     data: { type: 'canvas' },
   })
 
-  const sensors = useSensors(
+  const allSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor)
+  )
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+      const activeData = active.data.current as { type: string; node?: WorkflowNode } | undefined
+
+      if (activeData?.type === 'node') {
+        const node = activeData.node
+        if (!node) return
+        const { delta } = event
+        if (delta) {
+          const dx = delta.x / zoom
+          const dy = delta.y / zoom
+          updateNode(node.id, {
+            position: {
+              x: Math.max(0, node.position.x + dx),
+              y: Math.max(0, node.position.y + dy),
+            },
+          })
+        }
+        return
+      }
+
+      if (activeData?.type === 'node-type' && over?.id === 'canvas-drop') {
+        const nodeType = String(active.id).replace(/^node-type-/, '')
+        const rect = containerRef.current?.getBoundingClientRect()
+        if (!rect) return
+        const centerX = rect.width / 2
+        const centerY = rect.height / 2
+        const relX = (centerX - pan.x) / zoom
+        const relY = (centerY - pan.y) / zoom
+        addNode({
+          id: generateNodeId(),
+          templateId,
+          type: nodeType as WorkflowNodeType,
+          config: {},
+          position: { x: Math.max(0, relX - 80), y: Math.max(0, relY - 24) },
+          size: { width: 160, height: 48 },
+          label: nodeType,
+        })
+      }
+    },
+    [templateId, pan, zoom, addNode, updateNode]
   )
 
   const handleWheel = useCallback(
@@ -224,51 +266,6 @@ export function WorkflowCanvas({ templateId, onCanvasClick }: WorkflowCanvasProp
     return () => window.removeEventListener('mouseup', handler)
   }, [isPanning])
 
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event
-      if (!over || over.id === 'canvas-drop') return
-
-      const activeData = active.data.current as { type: string; node?: WorkflowNode } | undefined
-      const overData = over.data.current as { type: string } | undefined
-
-      if (activeData?.type === 'node' && overData?.type === 'canvas') {
-        const node = activeData.node
-        if (!node) return
-        const rect = containerRef.current?.getBoundingClientRect()
-        if (!rect) return
-        const dropX = (event.activatorEvent as MouseEvent)?.clientX ?? 0
-        const dropY = (event.activatorEvent as MouseEvent)?.clientY ?? 0
-        const relX = (dropX - rect.left - pan.x) / zoom
-        const relY = (dropY - rect.top - pan.y) / zoom
-        updateNode(node.id, {
-          position: { x: Math.max(0, relX - node.size.width / 2), y: Math.max(0, relY - node.size.height / 2) },
-        })
-      }
-
-      if (activeData?.type === 'node-type') {
-        const nodeType = active.id as string
-        const rect = containerRef.current?.getBoundingClientRect()
-        if (!rect || !overData) return
-        const dropEvent = event.activatorEvent as MouseEvent | undefined
-        const dropX = dropEvent?.clientX ?? rect.width / 2
-        const dropY = dropEvent?.clientY ?? rect.height / 2
-        const relX = (dropX - rect.left - pan.x) / zoom
-        const relY = (dropY - rect.top - pan.y) / zoom
-        addNode({
-          id: generateNodeId(),
-          templateId,
-          type: nodeType as WorkflowNodeType,
-          config: {},
-          position: { x: Math.max(0, relX - 80), y: Math.max(0, relY - 24) },
-          size: { width: 160, height: 48 },
-          label: nodeType,
-        })
-      }
-    },
-    [templateId, pan, zoom, addNode, updateNode]
-  )
-
   const getNodePosition = (node: WorkflowNode) => {
     const n = filteredNodes.find((x) => x.id === node.id)
     return n?.position ?? node.position
@@ -282,93 +279,101 @@ export function WorkflowCanvas({ templateId, onCanvasClick }: WorkflowCanvasProp
     }
   }
 
-  return (
+  const canvasContent = (
     <div
-      ref={containerRef}
-      className="relative w-full h-full overflow-hidden bg-card/30 rounded-xl border border-border"
-      onWheel={handleWheel}
-      style={{ cursor: isPanning ? 'grabbing' : 'default' }}
+      ref={setNodeRef}
+      className={cn(
+        'absolute inset-0 transition-colors duration-200',
+        isOver && 'bg-primary/5'
+      )}
+      style={{
+        transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+        transformOrigin: '0 0',
+      }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
     >
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div
-          ref={setNodeRef}
-          className={cn(
-            'absolute inset-0 transition-colors duration-200',
-            isOver && 'bg-primary/5'
-          )}
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: '0 0',
-          }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-        >
-          {/* Grid background */}
-          <div
-            className="absolute inset-0 opacity-30"
-            style={{
-              backgroundImage: `
-                linear-gradient(rgb(var(--border)) 1px, transparent 1px),
-                linear-gradient(90deg, rgb(var(--border)) 1px, transparent 1px)
-              `,
-              backgroundSize: '24px 24px',
-            }}
-          />
+      {/* Grid background */}
+      <div
+        className="absolute inset-0 opacity-30"
+        style={{
+          backgroundImage: `
+            linear-gradient(rgb(var(--border)) 1px, transparent 1px),
+            linear-gradient(90deg, rgb(var(--border)) 1px, transparent 1px)
+          `,
+          backgroundSize: '24px 24px',
+        }}
+      />
 
-          {/* Edges */}
-          <svg
-            className="absolute inset-0 pointer-events-none"
-            style={{ width: '100%', height: '100%' }}
+      {/* Edges */}
+      <svg
+        className="absolute inset-0 pointer-events-none"
+        style={{ width: '100%', height: '100%' }}
+      >
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="10"
+            markerHeight="7"
+            refX="9"
+            refY="3.5"
+            orient="auto"
           >
-            <defs>
-              <marker
-                id="arrowhead"
-                markerWidth="10"
-                markerHeight="7"
-                refX="9"
-                refY="3.5"
-                orient="auto"
-              >
-                <polygon points="0 0, 10 3.5, 0 7" fill="rgb(var(--primary))" />
-              </marker>
-            </defs>
-            {(filteredEdges ?? []).map((edge) => {
-              const fromNode = filteredNodes.find((n) => n.id === edge.fromNodeId)
-              const toNode = filteredNodes.find((n) => n.id === edge.toNodeId)
-              if (!fromNode || !toNode) return null
-              const from = getNodeCenter(fromNode)
-              const to = getNodeCenter(toNode)
-              const midX = (from.x + to.x) / 2
-              return (
-                <g key={edge.id}>
-                  <path
-                    d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
-                    fill="none"
-                    stroke="rgb(var(--primary))"
-                    strokeWidth="2"
-                    markerEnd="url(#arrowhead)"
-                  />
-                </g>
-              )
-            })}
-          </svg>
+            <polygon points="0 0, 10 3.5, 0 7" fill="rgb(var(--primary))" />
+          </marker>
+        </defs>
+        {(filteredEdges ?? []).map((edge) => {
+          const fromNode = filteredNodes.find((n) => n.id === edge.fromNodeId)
+          const toNode = filteredNodes.find((n) => n.id === edge.toNodeId)
+          if (!fromNode || !toNode) return null
+          const from = getNodeCenter(fromNode)
+          const to = getNodeCenter(toNode)
+          const midX = (from.x + to.x) / 2
+          return (
+            <g key={edge.id}>
+              <path
+                d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
+                fill="none"
+                stroke="rgb(var(--primary))"
+                strokeWidth="2"
+                markerEnd="url(#arrowhead)"
+              />
+            </g>
+          )
+        })}
+      </svg>
 
-          {/* Nodes */}
-          {(filteredNodes ?? []).map((node) => (
-            <CanvasNode
-              key={node.id}
-              node={node}
-              isSelected={selectedNodeId === node.id}
-              onSelect={() => setSelectedNode(node.id)}
-            />
-          ))}
-        </div>
-      </DndContext>
+      {/* Nodes */}
+      {(filteredNodes ?? []).map((node) => (
+        <CanvasNode
+          key={node.id}
+          node={node}
+          isSelected={selectedNodeId === node.id}
+          onSelect={() => setSelectedNode(node.id)}
+        />
+      ))}
+    </div>
+  )
 
-      {/* Zoom controls */}
-      <div className="absolute bottom-4 right-4 flex flex-col gap-1 rounded-lg border border-border bg-card p-1 shadow-card">
+  return (
+    <DndContext sensors={allSensors} onDragEnd={handleDragEnd}>
+      <div className="flex h-full gap-4 w-full">
+        {leftSlot && (
+          <aside className="w-64 xl:w-72 shrink-0 flex flex-col rounded-xl border border-border bg-card p-4 overflow-y-auto">
+            {leftSlot}
+          </aside>
+        )}
+        <div
+          ref={containerRef}
+          className="relative flex-1 min-w-0 overflow-hidden bg-card/30 rounded-xl border border-border"
+          onWheel={handleWheel}
+          style={{ cursor: isPanning ? 'grabbing' : 'default' }}
+        >
+          {canvasContent}
+          {/* Zoom controls */}
+          <div className="absolute bottom-4 right-4 flex flex-col gap-1 rounded-lg border border-border bg-card p-1 shadow-card">
         <button
           type="button"
           onClick={() => setZoom(zoom + 0.25)}
@@ -388,7 +393,9 @@ export function WorkflowCanvas({ templateId, onCanvasClick }: WorkflowCanvasProp
         >
           <span className="text-lg font-bold">−</span>
         </button>
+          </div>
+        </div>
       </div>
-    </div>
+    </DndContext>
   )
 }
