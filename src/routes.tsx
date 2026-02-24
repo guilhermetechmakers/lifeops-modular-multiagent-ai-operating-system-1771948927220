@@ -46,6 +46,7 @@ import {
 import { HealthDashboard } from '@/pages/dashboard/health'
 import { CronjobsDashboard } from '@/pages/dashboard/cronjobs'
 import { CronjobDetailPage } from '@/pages/dashboard/cronjob-detail'
+import { CronjobCreatePage } from '@/pages/dashboard/cronjob-create'
 import { ApprovalsQueuePage } from '@/pages/dashboard/approvals'
 import { ApprovalDetailPage } from '@/pages/dashboard/approval-detail'
 import { RunHistoryPage } from '@/pages/dashboard/run-history'
@@ -134,6 +135,7 @@ export const router = createBrowserRouter([
       },
       { path: 'health', element: <HealthDashboard /> },
       { path: 'cronjobs', element: <CronjobsDashboard /> },
+      { path: 'cronjobs/new', element: <CronjobCreatePage /> },
       { path: 'cronjobs/:id', element: <CronjobDetailPage /> },
       { path: 'approvals', element: <ApprovalsQueuePage /> },
       { path: 'approvals/:id', element: <ApprovalDetailPage /> },
