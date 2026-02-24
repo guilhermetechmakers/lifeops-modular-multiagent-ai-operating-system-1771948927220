@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutGrid, Plug, ChevronLeft } from 'lucide-react'
+import { LayoutGrid, Plug, ChevronLeft, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -12,6 +12,7 @@ const STORAGE_KEY = 'lifeops_finance_nav_collapsed'
 
 const NAV_ITEMS: { to: string; icon: React.ComponentType<{ className?: string }>; label: string; end?: boolean }[] = [
   { to: '', icon: LayoutGrid, label: 'Overview', end: true },
+  { to: 'transactions-reconciliation', icon: FileText, label: 'Transactions & Reconciliation', end: true },
   { to: 'integrations', icon: Plug, label: 'Integrations', end: true },
 ]
 

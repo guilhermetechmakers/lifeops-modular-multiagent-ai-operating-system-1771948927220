@@ -114,13 +114,8 @@ export function useTransactionsReconciliation() {
     return () => {
       cancelled = true
     }
-  }, [filters.page, filters.limit, filters.accountIds, filters.categoryIds, filters.tagIds, filters.status, filters.dateFrom, filters.dateTo, debouncedSearch])
+  }, [filters.page, filters.limit, filters.accountIds, filters.categoryIds, filters.tagIds, filters.status, filters.dateFrom, filters.dateTo, debouncedSearch, loadTransactions, loadMetadata])
 
-  useEffect(() => {
-    if (debouncedSearch !== (filters.searchQuery ?? '')) {
-      loadTransactions({ ...filters, searchQuery: debouncedSearch || undefined, page: 1 })
-    }
-  }, [debouncedSearch])
 
   const updateFilters = useCallback((updates: Partial<TransactionFilters>) => {
     setFilters((prev) => ({ ...prev, ...updates }))

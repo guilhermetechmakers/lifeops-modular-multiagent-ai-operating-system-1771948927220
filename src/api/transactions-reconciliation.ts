@@ -11,7 +11,6 @@ import type {
   Rule,
   Run,
   ExportJob,
-  StatementItem,
   AuditLog,
   ReconciliationMetrics,
   TransactionFilters,
@@ -20,7 +19,7 @@ import type {
   BulkReconcilePayload,
   ExportPayload,
 } from '@/types/transactions-reconciliation'
-import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '@/lib/api'
+import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK_API !== 'false'
 
