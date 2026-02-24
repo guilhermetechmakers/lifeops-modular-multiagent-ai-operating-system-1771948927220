@@ -23,6 +23,8 @@ import {
   User,
   Settings,
   LogOut,
+  Bell,
+  FolderKanban,
 } from 'lucide-react'
 import { GlobalSearchPanel } from './global-search-panel'
 import { cn } from '@/lib/utils'
@@ -80,6 +82,15 @@ export function MasterHeader({
           </button>
 
           <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              aria-label="Notifications"
+              onClick={() => navigate('/dashboard/overview')}
+            >
+              <Bell className="h-5 w-5" />
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="default" size="sm" className="gap-2">
@@ -88,6 +99,10 @@ export function MasterHeader({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => navigate('/dashboard/projects')}>
+                  <FolderKanban className="h-4 w-4" />
+                  New Project
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/dashboard/cronjobs')}>
                   <Clock className="h-4 w-4" />
                   New Cronjob

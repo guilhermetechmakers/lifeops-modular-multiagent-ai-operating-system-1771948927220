@@ -68,6 +68,25 @@ export async function apiPut<T>(
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     method: 'PUT',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  return handleResponse<T>(response)
+}
+
+export async function apiPatch<T>(
+  path: string,
+  body?: unknown,
+  options?: RequestInit
+): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    method: 'PATCH',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,

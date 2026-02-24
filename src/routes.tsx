@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { MainLayout } from '@/components/layout/main-layout'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
+import { ProjectsLayout } from '@/components/layout/projects-layout'
 
 // Public pages
 import { LandingPage } from '@/pages/landing'
@@ -17,6 +18,16 @@ import { PricingPage } from '@/pages/pricing'
 // Dashboard pages
 import { MasterDashboard } from '@/pages/dashboard/master'
 import { ProjectsDashboard } from '@/pages/dashboard/projects'
+import { ProjectDetailPage } from '@/pages/dashboard/project-detail'
+import {
+  ProjectsRoadmapsPage,
+  ProjectsTicketsPage,
+  ProjectsPRsReleasesPage,
+  ProjectsCITriggersPage,
+  ProjectsTemplatesPage,
+  ProjectsIntegrationsPage,
+  ProjectsArtifactsPage,
+} from '@/pages/dashboard/projects-section-pages'
 import { ContentDashboard } from '@/pages/dashboard/content'
 import { FinanceDashboard } from '@/pages/dashboard/finance'
 import { HealthDashboard } from '@/pages/dashboard/health'
@@ -65,7 +76,27 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/dashboard/overview" replace /> },
       { path: 'overview', element: <MasterDashboard /> },
       { path: 'master', element: <MasterDashboard /> },
-      { path: 'projects', element: <ProjectsDashboard /> },
+      {
+        path: 'projects',
+        element: <ProjectsLayout />,
+        children: [
+          { index: true, element: <ProjectsDashboard /> },
+          { path: 'roadmaps', element: <ProjectsRoadmapsPage /> },
+          { path: 'tickets', element: <ProjectsTicketsPage /> },
+          { path: 'prs-releases', element: <ProjectsPRsReleasesPage /> },
+          { path: 'ci-triggers', element: <ProjectsCITriggersPage /> },
+          { path: 'templates', element: <ProjectsTemplatesPage /> },
+          { path: 'integrations', element: <ProjectsIntegrationsPage /> },
+          { path: ':id', element: <ProjectDetailPage /> },
+          { path: ':id/roadmaps', element: <ProjectsRoadmapsPage /> },
+          { path: ':id/tickets', element: <ProjectsTicketsPage /> },
+          { path: ':id/prs-releases', element: <ProjectsPRsReleasesPage /> },
+          { path: ':id/ci-triggers', element: <ProjectsCITriggersPage /> },
+          { path: ':id/templates', element: <ProjectsTemplatesPage /> },
+          { path: ':id/integrations', element: <ProjectsIntegrationsPage /> },
+          { path: ':id/artifacts', element: <ProjectsArtifactsPage /> },
+        ],
+      },
       { path: 'content', element: <ContentDashboard /> },
       { path: 'finance', element: <FinanceDashboard /> },
       { path: 'health', element: <HealthDashboard /> },

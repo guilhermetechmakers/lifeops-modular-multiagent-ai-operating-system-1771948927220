@@ -1,0 +1,7 @@
+export { KanbanBoard } from './kanban-board'
+export { PRReleasePanel } from './pr-release-panel'
+export { CITriggerManager } from './ci-trigger-manager'
+export { AutomationTemplatesPanel } from './automation-templates-panel'
+export { IntegrationsPanel } from './integrations-panel'
+export { ArtifactsGallery } from './artifacts-gallery'
+export { RoadmapView } from './roadmap-view'
