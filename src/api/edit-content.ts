@@ -226,7 +226,29 @@ export async function createVersion(
 
 export async function fetchActivityLog(contentId: string): Promise<ActivityLogEntry[]> {
   if (USE_MOCK) {
-    const list = (MOCK_ACTIVITY ?? []).filter((a) => a.contentId === contentId)
+    let list = (MOCK_ACTIVITY ?? []).filter((a) => a.contentId === contentId)
+    if (list.length === 0) {
+      const seed: ActivityLogEntry[] = [
+        {
+          id: `al-${contentId}-1`,
+          contentId,
+          action: 'edit',
+          actorId: 'agent-draft',
+          details: 'Content loaded for editing',
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: `al-${contentId}-2`,
+          contentId,
+          action: 'transition',
+          actorId: 'system',
+          details: 'Moved to Draft',
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+        },
+      ]
+      MOCK_ACTIVITY.push(...seed)
+      list = seed
+    }
     return list
   }
   try {

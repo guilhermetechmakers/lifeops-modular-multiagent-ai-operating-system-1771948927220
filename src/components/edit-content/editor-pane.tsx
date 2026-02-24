@@ -25,7 +25,7 @@ export interface EditorPaneProps {
   aiGenerating?: boolean
   onSave?: (payload: Partial<ContentItem>) => Promise<ContentItem | null>
   onGenerateSuggestions?: () => Promise<AiSuggestion[]>
-  onAcceptSuggestion?: (suggestionId: string) => Promise<unknown>
+  onAcceptSuggestion?: (suggestion: AiSuggestion) => Promise<unknown>
   onRejectSuggestion?: (suggestionId: string) => Promise<unknown>
 }
 
@@ -215,7 +215,10 @@ export function EditorPane({
         loading={aiSuggestionsLoading}
         generating={aiGenerating}
         onGenerate={onGenerateSuggestions}
-        onAccept={onAcceptSuggestion}
+        onAccept={async (s) => {
+          setBody((prev) => prev + (prev ? '\n\n' : '') + s.snippet)
+          await onAcceptSuggestion?.(s)
+        }}
         onReject={onRejectSuggestion}
         disabled={loading}
       />

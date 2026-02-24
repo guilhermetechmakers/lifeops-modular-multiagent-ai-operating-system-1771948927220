@@ -13,7 +13,7 @@ export interface AIFirstResponderProps {
   loading?: boolean
   generating?: boolean
   onGenerate?: () => Promise<AiSuggestion[]>
-  onAccept?: (suggestionId: string) => Promise<unknown>
+  onAccept?: (suggestion: AiSuggestion) => Promise<unknown>
   onReject?: (suggestionId: string) => Promise<unknown>
   disabled?: boolean
 }
@@ -86,7 +86,7 @@ export function AIFirstResponder({
                     size="sm"
                     variant="default"
                     className="gap-1"
-                    onClick={() => onAccept?.(s.id)}
+                    onClick={() => onAccept?.(s)}
                     disabled={disabled}
                   >
                     <Check className="h-3.5 w-3.5" />

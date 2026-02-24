@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { FileText, ExternalLink } from 'lucide-react'
+import { FileText, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ContentItem } from '@/types/content-dashboard'
 import { ContentPipelinePreview } from './content-pipeline-preview'
@@ -170,9 +170,9 @@ export function ContentCard({
             Preview
           </Button>
           <Button variant="default" size="sm" asChild>
-            <Link to={`/dashboard/content?item=${item.id}`} className="gap-1">
-              <ExternalLink className="h-3.5 w-3.5" />
-              Open
+            <Link to={`/dashboard/content/${item.id}/edit`} className="gap-1">
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
             </Link>
           </Button>
         </div>

@@ -35,6 +35,7 @@ import {
   ContentMasterDashboardPage,
   ContentMemoryPage,
   ContentCreatePage,
+  ContentEditPage,
 } from '@/pages/dashboard/content'
 import { FinanceDashboard } from '@/pages/dashboard/finance'
 import { HealthDashboard } from '@/pages/dashboard/health'
@@ -114,6 +115,7 @@ export const router = createBrowserRouter([
           { path: 'library', element: <ContentListLibraryPage /> },
           { path: 'master', element: <ContentMasterDashboardPage /> },
           { path: 'memory', element: <ContentMemoryPage /> },
+          { path: ':id/edit', element: <ContentEditPage /> },
         ],
       },
       { path: 'finance', element: <FinanceDashboard /> },

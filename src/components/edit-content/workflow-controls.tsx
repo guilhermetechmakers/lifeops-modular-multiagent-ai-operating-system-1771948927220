@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Workflow, Loader2 } from 'lucide-react'
-import type { ContentStatus } from '@/types/content-dashboard'
+import type { ContentStatus, ContentItem } from '@/types/content-dashboard'
 
 const STATUS_ORDER: ContentStatus[] = [
   'Idea',
@@ -37,7 +37,6 @@ export interface WorkflowControlsProps {
   currentStatus?: ContentStatus
   onTransition?: (toStatus: string) => Promise<ContentItem | null>
   transitioning?: boolean
-  userPermissions?: string[]
   disabled?: boolean
 }
 
@@ -45,7 +44,6 @@ export function WorkflowControls({
   currentStatus = 'Draft',
   onTransition,
   transitioning,
-  userPermissions = [],
   disabled,
 }: WorkflowControlsProps) {
   const [confirmTarget, setConfirmTarget] = useState<string | null>(null)

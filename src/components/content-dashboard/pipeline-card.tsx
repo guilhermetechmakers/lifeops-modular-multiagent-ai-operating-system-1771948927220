@@ -3,9 +3,10 @@
  */
 
 import { useDraggable } from '@dnd-kit/core'
+import { Link } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { GripVertical, MoreHorizontal } from 'lucide-react'
+import { GripVertical, MoreHorizontal, Pencil } from 'lucide-react'
 import type { ContentItem, ContentStatus } from '@/types/content-dashboard'
 import { cn } from '@/lib/utils'
 import {
@@ -66,6 +67,12 @@ export function PipelineCard({ item, isDragging, onClick, onStatusChange }: Pipe
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onClick?.()}>Open details</DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to={`/dashboard/content/${item.id}/edit`} className="flex items-center gap-2">
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => void onStatusChange?.(item.id, 'Research')}>
                 Move to Research
               </DropdownMenuItem>
