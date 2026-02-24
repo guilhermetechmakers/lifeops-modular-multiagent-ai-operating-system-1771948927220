@@ -220,9 +220,7 @@ export async function signup(
         preferred_modules: Array.isArray(options.modules) ? options.modules : [],
         onboarding_preferred: options.onboardingPreferred ?? false,
       },
-      emailRedirectTo: options.onboardingPreferred
-        ? `${window.location.origin}/onboarding`
-        : `${window.location.origin}/dashboard`,
+      emailRedirectTo: `${window.location.origin}/verify-email`,
     },
   })
 
@@ -277,23 +275,116 @@ export async function signupWithOAuth(
   return { ok: true, redirectUrl: url }
 }
 
+/** Verification result from verifyEmailToken */
+export interface VerifyEmailResult {
+  ok: boolean
+  status: 'verified' | 'expired' | 'invalid' | 'already_verified'
+  user?: {
+    id: string
+    email: string
+    emailVerified: boolean
+    twoFAEnabled?: boolean
+  }
+  needsOnboarding?: boolean
+  error?: string
+}
+
 export async function verifyEmailToken(
   token: string
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<VerifyEmailResult> {
   if (!isSupabaseConfigured || !supabase) {
-    return { ok: false, error: 'Authentication is not configured.' }
+    return {
+      ok: false,
+      status: 'invalid',
+      error: 'Authentication is not configured.',
+    }
   }
 
-  const { error } = await supabase.auth.verifyOtp({
+  const { data, error } = await supabase.auth.verifyOtp({
     token_hash: token,
     type: 'email',
   })
 
   if (error) {
-    return { ok: false, error: error.message ?? 'Verification failed. Please try again.' }
+    const msg = error.message ?? 'Verification failed. Please try again.'
+    const status: VerifyEmailResult['status'] =
+      msg.toLowerCase().includes('expired') ? 'expired' :
+      msg.toLowerCase().includes('already') ? 'already_verified' : 'invalid'
+    return { ok: false, status, error: msg }
   }
 
-  return { ok: true }
+  const user = data?.user
+  const emailVerified = Boolean(user?.email_confirmed_at ?? user?.email)
+  const onboardingPreferred = Boolean(
+    (user?.user_metadata as Record<string, unknown> | undefined)?.onboarding_preferred
+  )
+
+  let twoFAEnabled = false
+  try {
+    const { data: factorsData } = await supabase.auth.mfa.listFactors()
+    const factors = factorsData?.totp ?? []
+    twoFAEnabled = Array.isArray(factors) && factors.length > 0
+  } catch {
+    // Ignore MFA check errors
+  }
+
+  return {
+    ok: true,
+    status: 'verified',
+    user: user
+      ? {
+          id: user.id,
+          email: user.email ?? '',
+          emailVerified,
+          twoFAEnabled,
+        }
+      : undefined,
+    needsOnboarding: onboardingPreferred,
+  }
+}
+
+/** Check if current session was established from URL (e.g. hash params) */
+export async function getSessionAfterUrlVerification(): Promise<{
+  hasSession: boolean
+  user?: { id: string; email: string; emailVerified: boolean; twoFAEnabled?: boolean }
+  needsOnboarding?: boolean
+}> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { hasSession: false }
+  }
+
+  const { data: sessionData } = await supabase.auth.getSession()
+  const session = sessionData?.session
+  const user = session?.user
+
+  if (!session || !user) {
+    return { hasSession: false }
+  }
+
+  const emailVerified = Boolean(user.email_confirmed_at ?? user.email)
+  const onboardingPreferred = Boolean(
+    (user.user_metadata as Record<string, unknown> | undefined)?.onboarding_preferred
+  )
+
+  let twoFAEnabled = false
+  try {
+    const { data: factorsData } = await supabase.auth.mfa.listFactors()
+    const factors = factorsData?.totp ?? []
+    twoFAEnabled = Array.isArray(factors) && factors.length > 0
+  } catch {
+    // Ignore
+  }
+
+  return {
+    hasSession: true,
+    user: {
+      id: user.id,
+      email: user.email ?? '',
+      emailVerified,
+      twoFAEnabled,
+    },
+    needsOnboarding: onboardingPreferred,
+  }
 }
 
 export async function resendVerificationEmail(
