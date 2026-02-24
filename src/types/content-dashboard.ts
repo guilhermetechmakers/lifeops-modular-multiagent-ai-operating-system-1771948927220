@@ -336,6 +336,53 @@ export interface ResearchSource {
   date?: string
 }
 
+/** Edit Content - AI suggestion for inline drafting */
+export type AiSuggestionStatus = 'pending' | 'accepted' | 'rejected'
+
+export interface AiSuggestion {
+  id: string
+  contentId: string
+  snippet: string
+  rationale: string
+  createdAt: string
+  status: AiSuggestionStatus
+}
+
+/** Edit Content - Threaded review comment */
+export type CommentStatus = 'open' | 'resolved'
+
+export interface Comment {
+  id: string
+  contentId: string
+  parentId: string | null
+  authorId: string
+  text: string
+  status: CommentStatus
+  createdAt: string
+  updatedAt: string
+  replies?: Comment[]
+}
+
+/** Edit Content - Activity log entry for agent actions */
+export interface ActivityLogEntry {
+  id: string
+  contentId: string
+  action: string
+  actorId: string
+  details: string
+  timestamp: string
+}
+
+/** Edit Content - Schedule for publishing */
+export interface ScheduleRecord {
+  id: string
+  contentId: string
+  publishAt: string
+  platforms: string[]
+  timezone: string
+  status: string
+}
+
 /** Content list filters for library view */
 export interface ContentListFilters {
   search?: string
