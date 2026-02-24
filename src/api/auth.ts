@@ -169,3 +169,129 @@ export async function requestPasswordReset(email: string): Promise<{ ok: boolean
 
   return { ok: true }
 }
+
+/** Signup result - session created or email verification required */
+export interface SignupResult {
+  ok: boolean
+  needsEmailVerification?: boolean
+  error?: string
+}
+
+export async function signup(
+  email: string,
+  password: string,
+  options: {
+    name: string
+    company?: string
+    modules?: string[]
+    onboardingPreferred?: boolean
+  }
+): Promise<SignupResult> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, error: 'Authentication is not configured. Please set up Supabase.' }
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: options.name,
+        company: options.company ?? null,
+        preferred_modules: Array.isArray(options.modules) ? options.modules : [],
+        onboarding_preferred: options.onboardingPreferred ?? false,
+      },
+      emailRedirectTo: options.onboardingPreferred
+        ? `${window.location.origin}/onboarding`
+        : `${window.location.origin}/dashboard`,
+    },
+  })
+
+  if (error) {
+    const userMessage =
+      error.message === 'User already registered'
+        ? 'An account with this email already exists. Please sign in or reset your password.'
+        : error.message ?? 'Sign up failed. Please try again.'
+    return { ok: false, error: userMessage }
+  }
+
+  const needsEmailVerification =
+    data?.user?.identities?.length === 0 ||
+    (data?.user && !data?.session && data?.user?.email_confirmed_at == null)
+
+  return { ok: true, needsEmailVerification: !!needsEmailVerification }
+}
+
+export async function signupWithOAuth(
+  provider: OAuthProvider,
+  options?: { onboardingPreferred?: boolean }
+): Promise<{ ok: boolean; redirectUrl?: string; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, error: 'Authentication is not configured. Please set up Supabase.' }
+  }
+
+  const redirectTo = options?.onboardingPreferred
+    ? `${window.location.origin}/onboarding`
+    : `${window.location.origin}/dashboard`
+
+  const providerMap = {
+    google: 'google' as const,
+    github: 'github' as const,
+    microsoft: 'azure' as const,
+  }
+
+  const supabaseProvider = providerMap[provider] ?? provider
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: supabaseProvider,
+    options: {
+      redirectTo,
+      skipBrowserRedirect: true,
+    },
+  })
+
+  if (error) {
+    return { ok: false, error: error.message ?? 'OAuth sign-up failed.' }
+  }
+
+  const url = data?.url
+  return { ok: true, redirectUrl: url }
+}
+
+export async function verifyEmailToken(
+  token: string
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, error: 'Authentication is not configured.' }
+  }
+
+  const { error } = await supabase.auth.verifyOtp({
+    token_hash: token,
+    type: 'email',
+  })
+
+  if (error) {
+    return { ok: false, error: error.message ?? 'Verification failed. Please try again.' }
+  }
+
+  return { ok: true }
+}
+
+export async function resendVerificationEmail(
+  email: string
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, error: 'Authentication is not configured.' }
+  }
+
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+  })
+
+  if (error) {
+    return { ok: false, error: error.message ?? 'Failed to resend verification email.' }
+  }
+
+  return { ok: true }
+}

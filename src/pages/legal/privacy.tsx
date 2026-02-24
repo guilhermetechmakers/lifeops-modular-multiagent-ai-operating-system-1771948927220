@@ -69,6 +69,14 @@ export function PrivacyPage() {
               restrict processing, portability, and object. Contact privacy@lifeops.io to
               exercise these rights.
             </p>
+
+            <h3 id="data-processing">9. Data Processing Addendum</h3>
+            <p>
+              For business customers, we offer a Data Processing Addendum (DPA) that governs
+              how we process personal data on your behalf. The DPA includes standard
+              contractual clauses for international transfers, sub-processor commitments,
+              and audit rights. Contact legal@lifeops.io to request a signed DPA.
+            </p>
           </CardContent>
         </Card>
       </div>
