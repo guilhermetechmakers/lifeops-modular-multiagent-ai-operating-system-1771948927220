@@ -108,36 +108,6 @@ const MOCK_RUNS: Run[] = [
   },
 ]
 
-const MOCK_APPROVALS: Approval[] = [
-  {
-    id: 'ap1',
-    type: 'financial',
-    status: 'pending',
-    requester: 'Finance Close Agent',
-    createdAt: new Date(Date.now() - 7200000).toISOString(),
-    priority: 'high',
-    details: { title: 'Finance Close - January' },
-  },
-  {
-    id: 'ap2',
-    type: 'agent-change',
-    status: 'pending',
-    requester: 'Content Ideas Agent',
-    createdAt: new Date(Date.now() - 18000000).toISOString(),
-    priority: 'medium',
-    details: { title: 'Content Publish - Blog Post' },
-  },
-  {
-    id: 'ap3',
-    type: 'release',
-    status: 'pending',
-    requester: 'Projects Agent',
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    priority: 'high',
-    details: { title: 'Release v1.2.0' },
-  },
-]
-
 const MOCK_NOTIFICATIONS: Notification[] = [
   { id: 'n1', channel: 'email', templateId: 't1', lastSent: new Date().toISOString(), status: 'sent' },
   { id: 'n2', channel: 'in-app', lastSent: new Date().toISOString(), status: 'sent' },
@@ -235,13 +205,49 @@ export async function fetchRuns(params?: { cronJobId?: string; limit?: number; o
 
 export async function fetchApprovals(status?: string): Promise<Approval[]> {
   if (USE_MOCK) {
-    return status === 'pending' ? MOCK_APPROVALS.filter((a) => a.status === 'pending') : MOCK_APPROVALS
+    const { fetchApprovals: fetchApprovalsApi } = await import('@/api/approvals')
+    const res = await fetchApprovalsApi({
+      page: 1,
+      size: 20,
+      status: status === 'pending' ? 'pending' : undefined,
+    })
+    let items = Array.isArray(res?.data) ? res.data : []
+    if (status === 'pending') {
+      items = items.filter((a) => a.status === 'pending' || a.status === 'pending-info')
+    }
+    return items.map((a) => ({
+      id: a.id,
+      type: mapModuleToType(a.module),
+      status: mapApprovalStatus(a.status),
+      requester: a.requester ?? a.requesterId ?? '—',
+      createdAt: a.createdAt,
+      details: a.details ?? { title: a.summary },
+      priority: (a.priority ?? 'low') as Approval['priority'],
+    }))
   }
   const q = status ? `?status=${status}` : ''
   const res = await fetch(`${API_BASE}/master-dashboard/approvals${q}`, { credentials: 'include' })
   if (!res.ok) throw new Error('Failed to fetch approvals')
   const data = await res.json()
   return Array.isArray(data) ? data : data.items ?? data.data ?? []
+}
+
+function mapModuleToType(
+  module: string
+): 'cronjob' | 'agent-change' | 'release' | 'financial' {
+  if (module === 'cronjob') return 'cronjob'
+  if (module === 'agent-change') return 'agent-change'
+  if (module === 'release') return 'release'
+  if (module === 'finance') return 'financial'
+  return 'agent-change'
+}
+
+function mapApprovalStatus(
+  status: string
+): 'pending' | 'approved' | 'rejected' {
+  if (status === 'denied') return 'rejected'
+  if (status === 'approved') return 'approved'
+  return 'pending'
 }
 
 export async function fetchNotifications(): Promise<Notification[]> {
@@ -291,7 +297,11 @@ export async function globalSearch(query: string, filters?: Record<string, strin
 }
 
 export async function approveApproval(id: string, explanation?: string): Promise<void> {
-  if (USE_MOCK) return
+  if (USE_MOCK) {
+    const { approveApproval: apiApprove } = await import('@/api/approvals')
+    await apiApprove(id, { comment: explanation })
+    return
+  }
   const res = await fetch(`${API_BASE}/master-dashboard/approvals/${id}/approve`, {
     method: 'POST',
     credentials: 'include',
@@ -302,7 +312,11 @@ export async function approveApproval(id: string, explanation?: string): Promise
 }
 
 export async function rejectApproval(id: string, explanation?: string): Promise<void> {
-  if (USE_MOCK) return
+  if (USE_MOCK) {
+    const { denyApproval } = await import('@/api/approvals')
+    await denyApproval(id, { comment: explanation })
+    return
+  }
   await fetch(`${API_BASE}/master-dashboard/approvals/${id}/reject`, {
     method: 'POST',
     credentials: 'include',
