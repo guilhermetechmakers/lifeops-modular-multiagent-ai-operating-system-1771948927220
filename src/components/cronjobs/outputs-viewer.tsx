@@ -49,6 +49,7 @@ export interface OutputsViewerProps {
   total?: number
   isLoading?: boolean
   onLoadMore?: () => void
+  onRunClick?: (runId: string) => void
 }
 
 export function OutputsViewer({
@@ -57,6 +58,7 @@ export function OutputsViewer({
   total = 0,
   isLoading,
   onLoadMore,
+  onRunClick,
 }: OutputsViewerProps) {
   const items = Array.isArray(runs) ? runs : []
   const hasMore = total > items.length
@@ -104,16 +106,13 @@ export function OutputsViewer({
           </div>
         ) : (
           <div className="space-y-3">
-            {items.map((run) => (
-              <Link
-                key={run.id}
-                to={`/dashboard/runs/${run.id}`}
-                className="block"
-              >
+            {items.map((run) => {
+              const content = (
                 <div
                   className={cn(
                     'flex items-center justify-between p-3 rounded-lg border border-border',
-                    'hover:border-primary/50 hover:bg-muted/20 transition-colors'
+                    'hover:border-primary/50 hover:bg-muted/20 transition-colors',
+                    onRunClick && 'cursor-pointer'
                   )}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -132,8 +131,22 @@ export function OutputsViewer({
                     {run.status}
                   </Badge>
                 </div>
-              </Link>
-            ))}
+              )
+              return onRunClick ? (
+                <button
+                  key={run.id}
+                  type="button"
+                  onClick={() => onRunClick(run.id)}
+                  className="block w-full text-left"
+                >
+                  {content}
+                </button>
+              ) : (
+                <Link key={run.id} to={`/dashboard/runs/${run.id}`} className="block">
+                  {content}
+                </Link>
+              )
+            })}
           </div>
         )}
 

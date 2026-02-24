@@ -26,13 +26,42 @@ export interface CronjobConstraints {
 export interface CronjobSafetyRails {
   confirmationsRequired?: boolean
   safeguards?: string[]
+  requiredPrompts?: string[]
+  reversibleActions?: boolean
 }
+
+export type RetryBackoffStrategy = 'exponential' | 'fixed' | 'linear'
 
 export interface CronjobRetryPolicy {
   maxRetries: number
   backoffMs: number
+  backoffStrategy?: RetryBackoffStrategy
   deadLetter?: string
 }
+
+export interface TriggerConfigTime {
+  type: 'time'
+  schedule?: string
+}
+
+export interface TriggerConfigEvent {
+  type: 'event'
+  eventSource?: string
+  eventType?: string
+  mapping?: Record<string, string>
+}
+
+export interface TriggerConfigConditional {
+  type: 'conditional'
+  condition?: string
+  fallback?: string
+  mapping?: Record<string, string>
+}
+
+export type TriggerConfig =
+  | TriggerConfigTime
+  | TriggerConfigEvent
+  | TriggerConfigConditional
 
 export interface CronjobInputTemplate {
   promptTemplate?: string
@@ -54,6 +83,7 @@ export interface Cronjob {
   schedule: string | CronjobSchedule
   timezone: string
   triggerType: CronjobTriggerType
+  triggerConfig?: TriggerConfig
   targetType: 'agent' | 'template'
   targetId: string
   target?: CronjobTarget
@@ -84,6 +114,15 @@ export type CronjobRunStatus =
   | 'failed'
   | 'skipped'
 
+export interface CronjobRunTraceNode {
+  agentId: string
+  agentName?: string
+  timestamp?: string
+  durationMs?: number
+  message?: string
+  nextAgentId?: string
+}
+
 export interface CronjobRun {
   id: string
   cronjobId: string
@@ -98,6 +137,12 @@ export interface CronjobRun {
   }
   logs?: string[]
   traceId?: string
+  inputs?: Record<string, unknown>
+  outputs?: Record<string, unknown>
+  trace?: CronjobRunTraceNode[] | Record<string, unknown>
+  diffs?: unknown[]
+  artifacts?: unknown[]
+  errors?: string[]
 }
 
 export type ApprovalStatus = 'open' | 'approved' | 'rejected'
@@ -126,6 +171,25 @@ export interface CronjobTemplate {
   updatedAt: string
 }
 
+export interface AuditEntry {
+  id: string
+  cronjobId: string
+  userId: string
+  action: string
+  timestamp: string
+  before?: unknown
+  after?: unknown
+}
+
+export interface PolicyJustification {
+  id: string
+  cronjobId: string
+  reason: string
+  justifiedBy: string
+  appliedAt: string
+  newState?: unknown
+}
+
 export interface CronjobsListResponse {
   data: Cronjob[]
   total: number
@@ -141,6 +205,7 @@ export interface CronjobCreateInput {
   schedule: string | CronjobSchedule
   timezone: string
   triggerType: CronjobTriggerType
+  triggerConfig?: TriggerConfig
   targetType: 'agent' | 'template'
   targetId: string
   inputTemplate: CronjobInputTemplate | string

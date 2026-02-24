@@ -12,6 +12,8 @@ import type {
   CronjobCreateInput,
   CronjobsListResponse,
   CronjobRunsResponse,
+  AuditEntry,
+  PolicyJustification,
 } from '@/types/cronjobs'
 
 const API_BASE = '/cronjobs'
@@ -392,6 +394,56 @@ export async function simulateTemplate(id: string): Promise<{ success: boolean; 
   }
   const res = await apiPost<{ success: boolean; output?: unknown }>(`/templates/${id}/simulate`, {})
   return res
+}
+
+export async function triggerTestCronjob(
+  id: string,
+  payload?: Record<string, unknown>
+): Promise<{ success: boolean; message?: string }> {
+  if (USE_MOCK) {
+    return { success: true, message: 'Trigger config valid' }
+  }
+  try {
+    const res = await apiPost<{ success?: boolean; message?: string }>(
+      `${API_BASE}/${id}/trigger-test`,
+      payload ?? {}
+    )
+    return { success: res?.success ?? true, message: res?.message }
+  } catch (e) {
+    return {
+      success: false,
+      message: e instanceof Error ? e.message : 'Test failed',
+    }
+  }
+}
+
+export async function fetchCronjobAuditTrail(cronjobId: string): Promise<AuditEntry[]> {
+  if (USE_MOCK) {
+    return [
+      {
+        id: 'audit-1',
+        cronjobId,
+        userId: 'u1',
+        action: 'Schedule updated',
+        timestamp: new Date(Date.now() - 3600000).toISOString(),
+      },
+    ]
+  }
+  const res = await apiGet<AuditEntry[] | { data?: AuditEntry[] }>(
+    `${API_BASE}/${cronjobId}/audit`
+  )
+  return Array.isArray(res) ? res : res?.data ?? []
+}
+
+export async function fetchPolicyJustifications(cronjobId: string): Promise<PolicyJustification[]> {
+  if (USE_MOCK) {
+    return []
+  }
+  const res = await apiPost<PolicyJustification[] | { data?: PolicyJustification[] }>(
+    '/policies/evaluate',
+    { cronjobId }
+  )
+  return Array.isArray(res) ? res : res?.data ?? []
 }
 
 export async function fetchHealth(): Promise<{

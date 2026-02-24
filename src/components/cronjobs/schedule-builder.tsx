@@ -2,7 +2,7 @@
  * ScheduleBuilder - Cron expression editor with UI builder, timezone, next-run preview.
  */
 
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { validateCronExpression, getNextRunPreview } from '@/lib/cron-utils'
 import type { CronjobSchedule } from '@/types/cronjobs'
 
 const COMMON_CRON_PRESETS = [
@@ -35,10 +36,15 @@ const TIMEZONES = [
   'Asia/Shanghai',
 ]
 
+function formatPreviewDate(iso: string): string {
+  return new Date(iso).toLocaleString()
+}
+
 export interface ScheduleBuilderProps {
   schedule: string | CronjobSchedule
   timezone: string
   onChange: (schedule: string | CronjobSchedule, timezone: string) => void
+  nextRun?: string
   className?: string
 }
 
@@ -46,10 +52,21 @@ export function ScheduleBuilder({
   schedule,
   timezone,
   onChange,
+  nextRun,
   className,
 }: ScheduleBuilderProps) {
   const cronStr = typeof schedule === 'string' ? schedule : schedule?.cron ?? ''
   const humanReadable = typeof schedule === 'object' ? schedule?.humanReadable : undefined
+
+  const validation = useMemo(
+    () => (cronStr ? validateCronExpression(cronStr) : { valid: true }),
+    [cronStr]
+  )
+
+  const nextRuns = useMemo(
+    () => getNextRunPreview(cronStr, timezone, 5),
+    [cronStr, timezone]
+  )
 
   const handleCronChange = useCallback(
     (value: string) => {
@@ -60,7 +77,8 @@ export function ScheduleBuilder({
 
   const handleTimezoneChange = useCallback(
     (tz: string) => {
-      onChange(typeof schedule === 'string' ? schedule : { ...schedule }, tz)
+      const s = typeof schedule === 'string' ? schedule : { ...schedule }
+      onChange(s, tz)
     },
     [schedule, onChange]
   )
@@ -74,9 +92,19 @@ export function ScheduleBuilder({
           value={cronStr}
           onChange={(e) => handleCronChange(e.target.value)}
           placeholder="0 9 * * 1"
-          className="font-mono mt-1"
+          className={cn(
+            'font-mono mt-1',
+            !validation.valid && 'border-destructive focus-visible:ring-destructive'
+          )}
+          aria-invalid={!validation.valid}
+          aria-describedby={validation.message ? 'cron-error' : undefined}
         />
-        {humanReadable && (
+        {validation.message && (
+          <p id="cron-error" className="text-sm text-destructive mt-1">
+            {validation.message}
+          </p>
+        )}
+        {humanReadable && validation.valid && (
           <p className="text-sm text-muted-foreground mt-1">{humanReadable}</p>
         )}
       </div>
@@ -118,9 +146,26 @@ export function ScheduleBuilder({
         </Select>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Next run preview is calculated server-side based on the cron expression and timezone.
-      </p>
+      {(nextRun || (validation.valid && nextRuns.length > 0)) && (
+        <div className="rounded-lg border border-border bg-muted/20 p-4">
+          <Label className="text-muted-foreground">
+            {nextRun ? 'Next run (from server)' : 'Upcoming runs (preview)'}
+          </Label>
+          {nextRun ? (
+            <p className="mt-2 font-mono text-sm text-foreground">
+              {formatPreviewDate(nextRun)}
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-1 text-sm">
+              {(nextRuns ?? []).map((iso, i) => (
+                <li key={i} className="font-mono text-muted-foreground">
+                  {formatPreviewDate(iso)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   )
 }

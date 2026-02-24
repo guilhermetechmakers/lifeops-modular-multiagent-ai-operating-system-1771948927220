@@ -156,7 +156,10 @@ export function CreateCronjobForm({ onSubmit, templates = [] }: CreateCronjobFor
           />
           <TriggerConfigEditor
             triggerType={form.triggerType ?? 'time'}
-            onChange={(v) => setForm((p) => ({ ...p, triggerType: v }))}
+            triggerConfig={form.triggerConfig as unknown as Record<string, unknown>}
+            onChange={(triggerType, config) =>
+              setForm((p) => ({ ...p, triggerType, ...(config && { triggerConfig: config }) }))
+            }
           />
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setStep(1)}>
