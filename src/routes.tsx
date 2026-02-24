@@ -11,6 +11,7 @@ import { EmailVerificationPage } from '@/pages/auth/email-verification'
 import { TermsPage } from '@/pages/legal/terms'
 import { PrivacyPage } from '@/pages/legal/privacy'
 import { HelpDocumentationPage } from '@/pages/help'
+import { PricingPage } from '@/pages/pricing'
 
 // Dashboard pages
 import { MasterDashboard } from '@/pages/dashboard/master'
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
       { path: 'help', element: <HelpDocumentationPage /> },
       { path: 'help/:category', element: <HelpDocumentationPage /> },
       { path: 'help/:category/:doc', element: <HelpDocumentationPage /> },
+      { path: 'pricing', element: <PricingPage /> },
       { path: 'onboarding', element: <OnboardingPage /> },
     ],
   },

@@ -11,9 +11,15 @@ export function NotFoundPage() {
         <p className="text-muted-foreground mb-8">
           The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
-        <div className="flex gap-4 justify-center">
+        <div className="flex flex-wrap gap-4 justify-center">
           <Link to="/">
             <Button>Go home</Button>
+          </Link>
+          <Link to="/login">
+            <Button variant="outline">Log in</Button>
+          </Link>
+          <Link to="/signup">
+            <Button variant="outline">Sign up</Button>
           </Link>
           <Link to="/dashboard">
             <Button variant="outline">Dashboard</Button>
