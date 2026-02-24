@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { MasterDashboardEntry } from '@/components/onboarding'
 import { Button } from '@/components/ui/button'
 import {
   Bot,
@@ -81,9 +83,32 @@ const RECENT_ACTIVITY = [
   { id: 3, type: 'run', agent: 'Weekly Sync', status: 'completed', time: '1 hr ago' },
 ]
 
+const ONBOARDING_FLAG = 'lifeops_just_completed_onboarding'
+
 export function MasterDashboard() {
+  const [isNewUser, setIsNewUser] = useState(false)
+
+  useEffect(() => {
+    const flag = sessionStorage.getItem(ONBOARDING_FLAG)
+    if (flag === 'true') {
+      setIsNewUser(true)
+      sessionStorage.removeItem(ONBOARDING_FLAG)
+    }
+  }, [])
+
   return (
     <div className="space-y-8 animate-in-up">
+      {isNewUser && (
+        <MasterDashboardEntry
+          isNewUser
+          stats={{
+            cronjobsCount: 1,
+            nextRun: new Date(Date.now() + 86400000).toISOString(),
+            pendingApprovals: 0,
+          }}
+        />
+      )}
+
       <div>
         <h1 className="text-3xl font-bold">Master Dashboard</h1>
         <p className="text-muted-foreground mt-1">

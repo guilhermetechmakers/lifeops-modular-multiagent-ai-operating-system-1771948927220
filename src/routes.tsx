@@ -30,7 +30,7 @@ import { AgentConsolePage } from '@/pages/dashboard/agent-console'
 import { WorkflowEditorPage } from '@/pages/dashboard/workflow-editor'
 import { SettingsPage } from '@/pages/dashboard/settings'
 import { BillingPage } from '@/pages/dashboard/billing'
-import { OnboardingPage } from '@/pages/onboarding'
+import { SetupWizardPage } from '@/pages/onboarding/setup-wizard'
 
 // Error pages
 import { NotFoundPage } from '@/pages/errors/not-found'
@@ -54,7 +54,8 @@ export const router = createBrowserRouter([
       { path: 'help/:category', element: <HelpDocumentationPage /> },
       { path: 'help/:category/:doc', element: <HelpDocumentationPage /> },
       { path: 'pricing', element: <PricingPage /> },
-      { path: 'onboarding', element: <OnboardingPage /> },
+      { path: 'onboarding', element: <Navigate to="/onboarding/setup-wizard" replace /> },
+      { path: 'onboarding/setup-wizard', element: <SetupWizardPage /> },
     ],
   },
   {
