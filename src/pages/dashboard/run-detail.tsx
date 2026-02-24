@@ -1,7 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, RotateCcw, Download } from 'lucide-react'
+import { ArrowLeft, RotateCcw, Download, GitBranch } from 'lucide-react'
 
 export function RunDetailPage() {
   const { id } = useParams()
@@ -46,6 +46,12 @@ export function RunDetailPage() {
             <CardTitle>Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
+            <Link to={`/dashboard/runs/${id}/trace`}>
+              <Button variant="outline" className="w-full">
+                <GitBranch className="h-4 w-4" />
+                View Agent Trace
+              </Button>
+            </Link>
             <Button variant="outline" className="w-full">
               <RotateCcw className="h-4 w-4" />
               Revert (if allowed)
@@ -60,8 +66,18 @@ export function RunDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Inter-Agent Trace</CardTitle>
-          <CardDescription>Message flow between agents</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Inter-Agent Trace</CardTitle>
+              <CardDescription>Message flow between agents</CardDescription>
+            </div>
+            <Link to={`/dashboard/runs/${id}/trace`}>
+              <Button variant="default" size="sm">
+                <GitBranch className="h-4 w-4" />
+                View Full Trace
+              </Button>
+            </Link>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

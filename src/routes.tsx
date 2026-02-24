@@ -51,6 +51,8 @@ import { ApprovalsQueuePage } from '@/pages/dashboard/approvals'
 import { ApprovalDetailPage } from '@/pages/dashboard/approval-detail'
 import { RunHistoryPage } from '@/pages/dashboard/run-history'
 import { RunDetailPage } from '@/pages/dashboard/run-detail'
+import { AgentTraceViewerPage } from '@/pages/dashboard/agent-trace-viewer'
+import { RunLayout } from '@/components/layout/run-layout'
 import { AgentConsolePage } from '@/pages/dashboard/agent-console'
 import { AgentConsoleDetailPage } from '@/pages/dashboard/agent-console-detail'
 import { WorkflowEditorPage } from '@/pages/dashboard/workflow-editor'
@@ -140,8 +142,21 @@ export const router = createBrowserRouter([
       { path: 'cronjobs/:id', element: <CronjobDetailPage /> },
       { path: 'approvals', element: <ApprovalsQueuePage /> },
       { path: 'approvals/:id', element: <ApprovalDetailPage /> },
-      { path: 'runs', element: <RunHistoryPage /> },
-      { path: 'runs/:id', element: <RunDetailPage /> },
+      {
+        path: 'runs',
+        element: <RunLayout />,
+        children: [
+          { index: true, element: <RunHistoryPage /> },
+          {
+            path: ':id',
+            element: <RunLayout />,
+            children: [
+              { index: true, element: <RunDetailPage /> },
+              { path: 'trace', element: <AgentTraceViewerPage /> },
+            ],
+          },
+        ],
+      },
       { path: 'agents', element: <AgentConsolePage /> },
       { path: 'agents/:agentId', element: <AgentConsoleDetailPage /> },
       { path: 'workflows', element: <WorkflowEditorPage /> },

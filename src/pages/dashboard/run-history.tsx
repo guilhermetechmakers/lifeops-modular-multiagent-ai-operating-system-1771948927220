@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, Filter } from 'lucide-react'
+import { Search, Filter, GitBranch } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const MOCK_RUNS = [
@@ -71,11 +71,19 @@ export function RunHistoryPage() {
                     <td className="p-4 text-sm">{run.started}</td>
                     <td className="p-4 text-sm">{run.duration}</td>
                     <td className="p-4 text-right">
-                      <Link to={`/dashboard/runs/${run.id}`}>
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </Link>
+                      <div className="flex items-center justify-end gap-2">
+                        <Link to={`/dashboard/runs/${run.id}/trace`}>
+                          <Button variant="outline" size="sm">
+                            <GitBranch className="h-4 w-4" />
+                            Trace
+                          </Button>
+                        </Link>
+                        <Link to={`/dashboard/runs/${run.id}`}>
+                          <Button variant="ghost" size="sm">
+                            View
+                          </Button>
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
